@@ -1,98 +1,45 @@
 from sqlalchemy.orm import Session
-from app.models.player import Player
+from fastapi import HTTPException
 from app.repositories.player_repository import PlayerRepository
-from app.repositories.team_repository import TeamRepository
+from app.services.audit_log_service import AuditLogService
+from app.schemas.player_schema import PlayerCreate, PlayerUpdate
+from app.models.player import Player
+from app.models.enums import AuditEntity, AuditAction
 
 
 class PlayerService:
+    def __init__(self, db: Session):
+        self.repo = PlayerRepository(db)
+        self.audit = AuditLogService(db)
 
-    def __init__(self):
-        self.player_repo = PlayerRepository()
-        self.team_repo = TeamRepository()
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[Player]:
+        return self.repo.get_all(skip, limit)
 
-    # 🔎 Get
-    def get_player(self, db: Session, player_id: int) -> Player:
-        player = self.player_repo.get_by_id(db, player_id)
-        if not player:
-            raise ValueError("Player not found")
+    def get_by_id(self, player_id: int) -> Player:
+        p = self.repo.get_by_id(player_id)
+        if not p:
+            raise HTTPException(status_code=404, detail="Jugador no encontrado")
+        return p
+
+    def get_by_dni(self, dni: str) -> Player | None:
+        return self.repo.get_by_dni(dni)
+
+    def create(self, data: PlayerCreate, actor_id: int) -> Player:
+        if self.repo.get_by_dni(data.dni):
+            raise HTTPException(status_code=400, detail="Ya existe un jugador con ese DNI")
+        player = self.repo.create(data)
+        self.audit.log(AuditEntity.Player, AuditAction.Create, actor_id, f"player_id={player.id}")
         return player
 
-    # 📋 List
-    def list_players(
-        self,
-        db: Session,
-        team_id: int | None = None,
-    ) -> list[Player]:
-        return self.player_repo.list(db, team_id)
+    def update(self, player_id: int, data: PlayerUpdate, actor_id: int) -> Player:
+        player = self.get_by_id(player_id)
+        if data.dni and data.dni != player.dni and self.repo.get_by_dni(data.dni):
+            raise HTTPException(status_code=400, detail="Ya existe un jugador con ese DNI")
+        updated = self.repo.update(player, data)
+        self.audit.log(AuditEntity.Player, AuditAction.Update, actor_id, f"player_id={player_id}")
+        return updated
 
-    # ➕ Create
-    def create_player(
-        self,
-        db: Session,
-        name: str,
-        number: int,
-        position: str,
-        team_id: int,
-    ) -> Player:
-
-        # 1️⃣ Validar equipo
-        team = self.team_repo.get_by_id(db, team_id)
-        if not team:
-            raise ValueError("Team not found")
-
-        # 2️⃣ Dorsal único por equipo (recomendado)
-        existing = self.player_repo.get_by_number_in_team(
-            db,
-            number,
-            team_id,
-        )
-        if existing:
-            raise ValueError("Number already used in this team")
-
-        player = Player(
-            name=name,
-            number=number,
-            position=position,
-            team_id=team_id,
-        )
-
-        return self.player_repo.create(db, player)
-
-    # ✏️ Update
-    def update_player(
-        self,
-        db: Session,
-        player_id: int,
-        name: str | None,
-        number: int | None,
-        position: str | None,
-    ) -> Player:
-
-        player = self.get_player(db, player_id)
-
-        # Validar dorsal si cambia
-        if number and number != player.number:
-            existing = self.player_repo.get_by_number_in_team(
-                db,
-                number,
-                player.team_id,
-            )
-            if existing:
-                raise ValueError("Number already used in this team")
-
-        if name:
-            player.name = name
-        if number:
-            player.number = number
-        if position:
-            player.position = position
-
-        db.commit()
-        db.refresh(player)
-
-        return player
-
-    # 🗑 Delete
-    def delete_player(self, db: Session, player_id: int):
-        player = self.get_player(db, player_id)
-        self.player_repo.delete(db, player)
+    def delete(self, player_id: int, actor_id: int) -> None:
+        player = self.get_by_id(player_id)
+        self.repo.delete(player)
+        self.audit.log(AuditEntity.Player, AuditAction.Delete, actor_id, f"player_id={player_id}")

@@ -1,95 +1,73 @@
 from sqlalchemy.orm import Session
-from app.models.lineup import Lineup
+from fastapi import HTTPException
 from app.repositories.lineup_repository import LineupRepository
 from app.repositories.match_repository import MatchRepository
-from app.repositories.team_repository import TeamRepository
-from app.repositories.player_repository import PlayerRepository
+from app.repositories.tournament_repository import TournamentRepository
+from app.services.audit_log_service import AuditLogService
+from app.utils.tournament_guard import require_active_tournament
+from app.schemas.lineup_schema import LineupCreate, LineupBulkCreate, LineupUpdate
+from app.models.lineup import Lineup
+from app.models.enums import AuditEntity, AuditAction
 
 
 class LineupService:
+    def __init__(self, db: Session):
+        self.repo = LineupRepository(db)
+        self.match_repo = MatchRepository(db)
+        self.tournament_repo = TournamentRepository(db)
+        self.audit = AuditLogService(db)
 
-    def __init__(self):
-        self.lineup_repo = LineupRepository()
-        self.match_repo = MatchRepository()
-        self.team_repo = TeamRepository()
-        self.player_repo = PlayerRepository()
+    def _require_active_by_match(self, match_id: int) -> None:
+        match = self.match_repo.get_by_id(match_id)
+        if not match:
+            raise HTTPException(status_code=404, detail="Partido no encontrado")
+        tournament = self.tournament_repo.get_by_id(match.tournament_id)
+        if not tournament:
+            raise HTTPException(status_code=404, detail="Torneo no encontrado")
+        require_active_tournament(tournament)
 
-    # 🔎 Obtener alineación concreta
-    def get_lineup(self, db: Session, lineup_id: int) -> Lineup:
-        lineup = self.lineup_repo.get_by_id(db, lineup_id)
-        if not lineup:
-            raise ValueError("Lineup not found")
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[Lineup]:
+        return self.repo.get_all(skip, limit)
+
+    def get_by_id(self, lineup_id: int) -> Lineup:
+        l = self.repo.get_by_id(lineup_id)
+        if not l:
+            raise HTTPException(status_code=404, detail="Alineación no encontrada")
+        return l
+
+    def get_by_match(self, match_id: int) -> list[Lineup]:
+        return self.repo.get_by_match(match_id)
+
+    def create(self, data: LineupCreate, actor_id: int) -> Lineup:
+        self._require_active_by_match(data.match_id)
+        if self.repo.get_by_match_team_player(data.match_id, data.team_id, data.player_id):
+            raise HTTPException(status_code=400, detail="El jugador ya está en la alineación de este partido")
+        lineup = self.repo.create(data)
+        self.audit.log(AuditEntity.Lineup, AuditAction.Create, actor_id, f"lineup_id={lineup.id}")
         return lineup
 
-    # 📋 Listar alineaciones (por match o por equipo)
-    def list_lineups(
-        self,
-        db: Session,
-        match_id: int | None = None,
-        team_id: int | None = None,
-    ) -> list[Lineup]:
-        return self.lineup_repo.list(db, match_id, team_id)
+    def bulk_create(self, data: LineupBulkCreate, actor_id: int) -> list[Lineup]:
+        if data.lineups:
+            self._require_active_by_match(data.lineups[0].match_id)
+        for item in data.lineups:
+            if self.repo.get_by_match_team_player(item.match_id, item.team_id, item.player_id):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Jugador {item.player_id} ya está en la alineación"
+                )
+        lineups = self.repo.bulk_create(data.lineups)
+        self.audit.log(AuditEntity.Lineup, AuditAction.Create, actor_id,
+                       f"bulk {len(lineups)} lineups match_id={data.lineups[0].match_id}")
+        return lineups
 
-    # ➕ Añadir jugador a alineación
-    def add_player_to_lineup(
-        self,
-        db: Session,
-        match_id: int,
-        team_id: int,
-        player_id: int,
-        is_starting: bool,
-        position: str | None = None,
-    ) -> Lineup:
+    def update(self, lineup_id: int, data: LineupUpdate, actor_id: int) -> Lineup:
+        lineup = self.get_by_id(lineup_id)
+        self._require_active_by_match(lineup.match_id)
+        updated = self.repo.update(lineup, data)
+        self.audit.log(AuditEntity.Lineup, AuditAction.Update, actor_id, f"lineup_id={lineup_id}")
+        return updated
 
-        # 1️⃣ Validar match
-        match = self.match_repo.get_by_id(db, match_id)
-        if not match:
-            raise ValueError("Match not found")
-
-        # 2️⃣ Validar equipo
-        team = self.team_repo.get_by_id(db, team_id)
-        if not team:
-            raise ValueError("Team not found")
-
-        # 3️⃣ Validar que el equipo juegue el partido
-        if team_id not in [match.home_team_id, match.away_team_id]:
-            raise ValueError("Team is not part of this match")
-
-        # 4️⃣ Validar jugador
-        player = self.player_repo.get_by_id(db, player_id)
-        if not player:
-            raise ValueError("Player not found")
-
-        # 5️⃣ Validar que el jugador pertenezca al equipo
-        if player.team_id != team_id:
-            raise ValueError("Player does not belong to this team")
-
-        # 6️⃣ Evitar duplicados en misma alineación
-        existing = self.lineup_repo.get_by_match_team_player(
-            db,
-            match_id,
-            team_id,
-            player_id,
-        )
-
-        if existing:
-            raise ValueError("Player already in lineup for this match")
-
-        lineup = Lineup(
-            match_id=match_id,
-            team_id=team_id,
-            player_id=player_id,
-            is_starting=is_starting,
-            position=position,
-        )
-
-        return self.lineup_repo.create(db, lineup)
-
-    # 🗑 Quitar jugador de alineación
-    def remove_player_from_lineup(
-        self,
-        db: Session,
-        lineup_id: int,
-    ):
-        lineup = self.get_lineup(db, lineup_id)
-        self.lineup_repo.delete(db, lineup)
+    def delete(self, lineup_id: int, actor_id: int) -> None:
+        lineup = self.get_by_id(lineup_id)
+        self.repo.delete(lineup)
+        self.audit.log(AuditEntity.Lineup, AuditAction.Delete, actor_id, f"lineup_id={lineup_id}")

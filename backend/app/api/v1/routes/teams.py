@@ -1,79 +1,38 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
-
 from app.db.deps import get_db
-from app.api.v1.deps import get_current_user, require_roles
-from app.models.team import Team
-from app.models.user import User
-from app.models.tournament import Tournament
-from app.schemas.team import TeamCreate, TeamUpdate, TeamResponse
+from app.api.v1.deps import get_current_user, require_org, require_admin
 from app.services.team_service import TeamService
+from app.schemas.team_schema import TeamCreate, TeamUpdate, TeamOut
+from app.models.user import User
 
-router = APIRouter(prefix="/teams", tags=["teams"])
-
-team_service = TeamService()
-
-@router.get("/{team_id}", response_model=TeamResponse)
-def get_team(
-    team_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    try:
-        return team_service.get_team(db, team_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+router = APIRouter(prefix="/teams", tags=["Teams"])
 
 
-@router.post("/", response_model=TeamResponse)
-def create_team(
-    payload: TeamCreate,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "org")),
-):
-    try:
-        return team_service.create_team(
-            db,
-            payload.name,
-            payload.group,
-            payload.kit_color,
-            payload.tournament_id,
-            payload.logo_url,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.get("/", response_model=list[TeamOut])
+def get_all(tournament_id: int | None = None, skip: int = 0, limit: int = 100,
+            db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    svc = TeamService(db)
+    if tournament_id:
+        return svc.get_by_tournament(tournament_id)
+    return svc.get_all(skip, limit)
 
 
-@router.put("/{team_id}", response_model=TeamResponse)
-def update_team(
-    team_id: int,
-    payload: TeamUpdate,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "org")),
-):
-    try:
-        return team_service.update_team(
-            db,
-            team_id,
-            payload.name,
-            payload.group,
-            payload.kit_color,
-            payload.logo_url,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.get("/{team_id}", response_model=TeamOut)
+def get_by_id(team_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    return TeamService(db).get_by_id(team_id)
 
 
-@router.delete("/{team_id}")
-def delete_team(
-    team_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
-):
-    try:
-        team_service.delete_team(db, team_id)
-        return {"message": "Team deleted successfully"}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+@router.post("/", response_model=TeamOut, status_code=201)
+def create(data: TeamCreate, db: Session = Depends(get_db), _: User = Depends(require_org)):
+    return TeamService(db).create(data)
 
+
+@router.patch("/{team_id}", response_model=TeamOut)
+def update(team_id: int, data: TeamUpdate, db: Session = Depends(get_db), _: User = Depends(require_org)):
+    return TeamService(db).update(team_id, data)
+
+
+@router.delete("/{team_id}", status_code=204)
+def delete(team_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    TeamService(db).delete(team_id)

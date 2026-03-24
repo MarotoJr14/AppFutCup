@@ -4,25 +4,35 @@ services:
     container_name: futcup_db
     restart: always
     environment:
-      POSTGRES_USER: futcup_user
-      POSTGRES_PASSWORD: futcup_pass
-      POSTGRES_DB: futcup_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  
-  api:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
     build: .
+    container_name: futcup_backend
+    restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DATABASE_URL: postgresql+psycopg2://futcup_user:futcup_pass@db:5432/futcup_db
-      MIGRATE: "true"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
     ports:
-      - "8000:8000"
+      - "0.0.0.0:8000:8000"
+    volumes:
+      - .:/app
 
 volumes:
   postgres_data:

@@ -1,61 +1,40 @@
 from fastapi import Depends, HTTPException, status
-from jose import jwt, JWTError
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-
-from .security import get_bearer_token
-from app.core.config import settings
 from app.db.deps import get_db
+from app.core.security import decode_access_token
+from app.repositories.user_repository import UserRepository
 from app.models.user import User
+from app.models.enums import UserRole
+
+bearer_scheme = HTTPBearer()
 
 
-# =========================
-# GET CURRENT USER
-# =========================
 def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
-    token: str = Depends(get_bearer_token),
 ) -> User:
-    try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret,
-            algorithms=[settings.jwt_algorithm],
-        )
-        email: str | None = payload.get("sub")
-
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload",
-            )
-
-    except JWTError:
+    token = credentials.credentials
+    payload = decode_access_token(token)
+    if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Token inválido o expirado",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-
-    user = db.query(User).filter(User.email == email).first()
-
+    user = UserRepository(db).get_by_id(int(payload["sub"]))
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
-
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return user
 
-def require_roles(*allowed_roles: str):
-    def role_checker(user: User = Depends(get_current_user)) -> User:
-        # por si role es Enum
-        user_role = user.role.value if hasattr(user.role, "value") else user.role
 
-        if user_role not in allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
-            )
+def require_org(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in (UserRole.org, UserRole.admin):
+        raise HTTPException(status_code=403, detail="Se requiere rol org o admin")
+    return current_user
 
-        return user
 
-    return role_checker
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Se requiere rol admin")
+    return current_user

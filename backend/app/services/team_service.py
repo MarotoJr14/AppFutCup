@@ -1,106 +1,59 @@
 from sqlalchemy.orm import Session
-from app.models.team import Team
+from fastapi import HTTPException
 from app.repositories.team_repository import TeamRepository
 from app.repositories.tournament_repository import TournamentRepository
+from app.services.audit_log_service import AuditLogService
+from app.utils.tournament_guard import require_active_tournament
+from app.schemas.team_schema import TeamCreate, TeamUpdate
+from app.models.team import Team
+from app.models.enums import AuditEntity, AuditAction
 
 
 class TeamService:
+    def __init__(self, db: Session):
+        self.repo = TeamRepository(db)
+        self.tournament_repo = TournamentRepository(db)
+        self.audit = AuditLogService(db)
 
-    def __init__(self):
-        self.team_repo = TeamRepository()
-        self.tournament_repo = TournamentRepository()
+    def _get_tournament_or_404(self, tournament_id: int):
+        t = self.tournament_repo.get_by_id(tournament_id)
+        if not t:
+            raise HTTPException(status_code=404, detail="Torneo no encontrado")
+        return t
 
-    # 🔎 Obtener equipo
-    def get_team(self, db: Session, team_id: int) -> Team:
-        team = self.team_repo.get_by_id(db, team_id)
-        if not team:
-            raise ValueError("Team not found")
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[Team]:
+        return self.repo.get_all(skip, limit)
+
+    def get_by_id(self, team_id: int) -> Team:
+        t = self.repo.get_by_id(team_id)
+        if not t:
+            raise HTTPException(status_code=404, detail="Equipo no encontrado")
+        return t
+
+    def get_by_tournament(self, tournament_id: int) -> list[Team]:
+        return self.repo.get_by_tournament(tournament_id)
+
+    def create(self, data: TeamCreate, actor_id: int) -> Team:
+        tournament = self._get_tournament_or_404(data.tournament_id)
+        require_active_tournament(tournament)
+        if self.repo.get_by_name_and_tournament(data.name, data.tournament_id):
+            raise HTTPException(status_code=400, detail="Ya existe un equipo con ese nombre en este torneo")
+        team = self.repo.create(data)
+        self.audit.log(AuditEntity.Team, AuditAction.Create, actor_id, f"team_id={team.id}")
         return team
 
-    # 📋 Listar equipos (opcional filtro por torneo)
-    def list_teams(
-        self,
-        db: Session,
-        tournament_id: int | None = None,
-    ) -> list[Team]:
-        return self.team_repo.list(db, tournament_id)
+    def update(self, team_id: int, data: TeamUpdate, actor_id: int) -> Team:
+        team = self.get_by_id(team_id)
+        tournament = self._get_tournament_or_404(team.tournament_id)
+        require_active_tournament(tournament)
+        if data.name and data.name != team.name:
+            if self.repo.get_by_name_and_tournament(data.name, team.tournament_id):
+                raise HTTPException(status_code=400, detail="Ya existe un equipo con ese nombre en este torneo")
+        updated = self.repo.update(team, data)
+        self.audit.log(AuditEntity.Team, AuditAction.Update, actor_id, f"team_id={team_id}")
+        return updated
 
-    # ➕ Crear equipo
-    def create_team(
-        self,
-        db: Session,
-        name: str,
-        group: str,
-        kit_color: str,
-        tournament_id: int,
-        logo_url: str | None = None,
-    ) -> Team:
-
-        # 1️⃣ Validar torneo
-        tournament = self.tournament_repo.get_by_id(db, tournament_id)
-        if not tournament:
-            raise ValueError("Tournament not found")
-
-        # 2️⃣ Evitar duplicado en el mismo torneo
-        existing = self.team_repo.get_by_name_in_tournament(
-            db,
-            name,
-            tournament_id,
-        )
-
-        if existing:
-            raise ValueError("Team name already exists in this tournament")
-
-        team = Team(
-            name=name,
-            group=group,
-            kit_color=kit_color,
-            tournament_id=tournament_id,
-            logo_url=logo_url,
-        )
-
-        return self.team_repo.create(db, team)
-
-    # ✏️ Actualizar equipo
-    def update_team(
-        self,
-        db: Session,
-        team_id: int,
-        name: str | None,
-        group: str | None,
-        kit_color: str | None,
-        logo_url: str | None,
-    ) -> Team:
-
-        team = self.get_team(db, team_id)
-
-        # Validar unicidad si cambia el nombre
-        if name and name != team.name:
-            existing = self.team_repo.get_by_name_in_tournament(
-                db,
-                name,
-                team.tournament_id,
-            )
-            if existing:
-                raise ValueError(
-                    "Another team with this name already exists in this tournament"
-                )
-
-        if name:
-            team.name = name
-        if group:
-            team.group = group
-        if kit_color:
-            team.kit_color = kit_color
-        if logo_url is not None:
-            team.logo_url = logo_url
-
-        db.commit()
-        db.refresh(team)
-
-        return team
-
-    # 🗑 Eliminar equipo
-    def delete_team(self, db: Session, team_id: int):
-        team = self.get_team(db, team_id)
-        self.team_repo.delete(db, team)
+    def delete(self, team_id: int, actor_id: int) -> None:
+        team = self.get_by_id(team_id)
+        self.repo.delete(team)
+        self.audit.log(AuditEntity.Team, AuditAction.Delete, actor_id, f"team_id={team_id}")

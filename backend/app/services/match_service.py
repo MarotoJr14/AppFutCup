@@ -1,98 +1,57 @@
 from sqlalchemy.orm import Session
-from app.models.match import Match
+from fastapi import HTTPException
 from app.repositories.match_repository import MatchRepository
-from app.repositories.team_repository import TeamRepository
 from app.repositories.tournament_repository import TournamentRepository
+from app.services.audit_log_service import AuditLogService
+from app.utils.tournament_guard import require_active_tournament
+from app.schemas.match_schema import MatchCreate, MatchUpdate
+from app.models.match import Match
+from app.models.enums import MatchRound, AuditEntity, AuditAction
 
 
 class MatchService:
+    def __init__(self, db: Session):
+        self.repo = MatchRepository(db)
+        self.tournament_repo = TournamentRepository(db)
+        self.audit = AuditLogService(db)
 
-    def __init__(self):
-        self.match_repo = MatchRepository()
-        self.team_repo = TeamRepository()
-        self.tournament_repo = TournamentRepository()
+    def _get_tournament_or_404(self, tournament_id: int):
+        t = self.tournament_repo.get_by_id(tournament_id)
+        if not t:
+            raise HTTPException(status_code=404, detail="Torneo no encontrado")
+        return t
 
-    # 🔎 Get
-    def get_match(self, db: Session, match_id: int) -> Match:
-        match = self.match_repo.get_by_id(db, match_id)
-        if not match:
-            raise ValueError("Match not found")
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[Match]:
+        return self.repo.get_all(skip, limit)
+
+    def get_by_id(self, match_id: int) -> Match:
+        m = self.repo.get_by_id(match_id)
+        if not m:
+            raise HTTPException(status_code=404, detail="Partido no encontrado")
+        return m
+
+    def get_by_tournament(self, tournament_id: int) -> list[Match]:
+        return self.repo.get_by_tournament(tournament_id)
+
+    def get_by_tournament_and_round(self, tournament_id: int, round: MatchRound) -> list[Match]:
+        return self.repo.get_by_tournament_and_round(tournament_id, round)
+
+    def create(self, data: MatchCreate, actor_id: int) -> Match:
+        tournament = self._get_tournament_or_404(data.tournament_id)
+        require_active_tournament(tournament)
+        match = self.repo.create(data)
+        self.audit.log(AuditEntity.Match, AuditAction.Create, actor_id, f"match_id={match.id}")
         return match
 
-    # 📋 List
-    def list_matches(
-        self,
-        db: Session,
-        tournament_id: int | None = None,
-    ) -> list[Match]:
-        return self.match_repo.list(db, tournament_id)
+    def update(self, match_id: int, data: MatchUpdate, actor_id: int) -> Match:
+        match = self.get_by_id(match_id)
+        tournament = self._get_tournament_or_404(match.tournament_id)
+        require_active_tournament(tournament)
+        updated = self.repo.update(match, data)
+        self.audit.log(AuditEntity.Match, AuditAction.Update, actor_id, f"match_id={match_id}")
+        return updated
 
-    # ➕ Create
-    def create_match(
-        self,
-        db: Session,
-        home_team_id: int,
-        away_team_id: int,
-        tournament_id: int,
-        date,
-        location: str | None = None,
-    ) -> Match:
-
-        # 1️⃣ Validar torneo
-        tournament = self.tournament_repo.get_by_id(db, tournament_id)
-        if not tournament:
-            raise ValueError("Tournament not found")
-
-        # 2️⃣ Validar equipos
-        home_team = self.team_repo.get_by_id(db, home_team_id)
-        away_team = self.team_repo.get_by_id(db, away_team_id)
-
-        if not home_team or not away_team:
-            raise ValueError("One or both teams not found")
-
-        # 3️⃣ No pueden ser el mismo equipo
-        if home_team_id == away_team_id:
-            raise ValueError("A team cannot play against itself")
-
-        # 4️⃣ Ambos equipos deben pertenecer al torneo
-        if (
-            home_team.tournament_id != tournament_id
-            or away_team.tournament_id != tournament_id
-        ):
-            raise ValueError("Teams must belong to the same tournament")
-
-        match = Match(
-            home_team_id=home_team_id,
-            away_team_id=away_team_id,
-            tournament_id=tournament_id,
-            date=date,
-            location=location,
-        )
-
-        return self.match_repo.create(db, match)
-
-    # ✏️ Update resultado
-    def update_score(
-        self,
-        db: Session,
-        match_id: int,
-        home_score: int | None,
-        away_score: int | None,
-    ) -> Match:
-
-        match = self.get_match(db, match_id)
-
-        if home_score is not None:
-            match.home_score = home_score
-        if away_score is not None:
-            match.away_score = away_score
-
-        db.commit()
-        db.refresh(match)
-
-        return match
-
-    # 🗑 Delete
-    def delete_match(self, db: Session, match_id: int):
-        match = self.get_match(db, match_id)
-        self.match_repo.delete(db, match)
+    def delete(self, match_id: int, actor_id: int) -> None:
+        match = self.get_by_id(match_id)
+        self.repo.delete(match)
+        self.audit.log(AuditEntity.Match, AuditAction.Delete, actor_id, f"match_id={match_id}")

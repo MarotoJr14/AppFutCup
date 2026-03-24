@@ -1,80 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
-
 from app.db.deps import get_db
-from app.api.v1.deps import get_current_user, require_roles
-from app.models.tournament import Tournament
-from app.models.user import User
-from app.schemas.tournament import TournamentCreate, TournamentUpdate, TournamentResponse
+from app.api.v1.deps import get_current_user, require_admin
 from app.services.tournament_service import TournamentService
+from app.schemas.tournament_schema import TournamentCreate, TournamentUpdate, TournamentOut
+from app.models.user import User
 
-router = APIRouter(prefix="/tournaments", tags=["tournaments"])
-
-tournament_service = TournamentService()
-
-@router.get("/", response_model=List[TournamentResponse])
-def list_tournaments(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    return tournament_service.list_tournaments(db)
-
-@router.get("/{tournament_id}", response_model=TournamentResponse)
-def get_tournament(
-    tournament_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    try:
-        return tournament_service.get_tournament(db, tournament_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+router = APIRouter(prefix="/tournaments", tags=["Tournaments"])
 
 
-@router.post("/", response_model=TournamentResponse)
-def create_tournament(
-    payload: TournamentCreate,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
-):
-    try:
-        return tournament_service.create_tournament(
-            db,
-            payload.name,
-            payload.year,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.get("/", response_model=list[TournamentOut])
+def get_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    return TournamentService(db).get_all(skip, limit)
 
 
-@router.put("/{tournament_id}", response_model=TournamentResponse)
-def update_tournament(
-    tournament_id: int,
-    payload: TournamentUpdate,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
-):
-    try:
-        return tournament_service.update_tournament(
-            db,
-            tournament_id,
-            payload.name,
-            payload.year,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.get("/{tournament_id}", response_model=TournamentOut)
+def get_by_id(tournament_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    return TournamentService(db).get_by_id(tournament_id)
 
 
-@router.delete("/{tournament_id}")
-def delete_tournament(
-    tournament_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
-):
-    try:
-        tournament_service.delete_tournament(db, tournament_id)
-        return {"message": "Tournament deleted successfully"}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+@router.post("/", response_model=TournamentOut, status_code=201)
+def create(data: TournamentCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return TournamentService(db).create(data)
 
+
+@router.patch("/{tournament_id}", response_model=TournamentOut)
+def update(tournament_id: int, data: TournamentUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return TournamentService(db).update(tournament_id, data)
+
+
+@router.delete("/{tournament_id}", status_code=204)
+def delete(tournament_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    TournamentService(db).delete(tournament_id)

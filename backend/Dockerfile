@@ -1,22 +1,20 @@
-FROM python:3.13-slim
-
-RUN apt-get update \
-    && apt-get install -y netcat-openbsd \
-    && rm -rf /var/lib/apt/lists/*
+FROM python:3.12-slim
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia la app
 COPY . .
 
-RUN adduser --disabled-password --gecos "" appuser \
-    && chown -R appuser:appuser /app \
-    && chmod +x entrypoint.sh
-
-USER appuser
+RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
-ENTRYPOINT ["/app/entrypoint.sh"]
+
+ENTRYPOINT ["./entrypoint.sh"]
+

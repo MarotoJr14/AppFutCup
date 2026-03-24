@@ -1,0 +1,42 @@
+name: FutCup_App
+description: Aplicación de gestión del torneo FutCup - Pro2FP
+
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # HTTP
+  dio: ^5.4.3+1
+
+  # Secure storage (token)
+  flutter_secure_storage: ^9.2.2
+
+  # Navigation
+  go_router: ^13.2.4
+
+  # UI
+  cupertino_icons: ^1.0.6
+  cached_network_image: ^3.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/futcup2026_banner.png
+    - assets/images/futcup2026_logo.png

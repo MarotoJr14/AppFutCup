@@ -1,33 +1,52 @@
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.player_team import PlayerTeam
+from app.models.player import Player
+from app.schemas.player_team_schema import PlayerTeamCreate, PlayerTeamUpdate
 
 
 class PlayerTeamRepository:
+    def __init__(self, db: Session):
+        self.db = db
 
-    def get_by_id(self, db: Session, relation_id: int) -> PlayerTeam | None:
-        return db.query(PlayerTeam).filter(PlayerTeam.id == relation_id).first()
+    def get_by_id(self, pt_id: int) -> Optional[PlayerTeam]:
+        return self.db.query(PlayerTeam).filter(PlayerTeam.id == pt_id).first()
 
-    def get_by_player_and_team(
-        self, db: Session, player_id: int, team_id: int
-    ) -> PlayerTeam | None:
-        return (
-            db.query(PlayerTeam)
-            .filter(
-                PlayerTeam.player_id == player_id,
-                PlayerTeam.team_id == team_id,
-            )
-            .first()
-        )
+    def get_by_team(self, team_id: int) -> list[PlayerTeam]:
+        return self.db.query(PlayerTeam).filter(PlayerTeam.team_id == team_id).order_by(PlayerTeam.number).all()
 
-    def list(self, db: Session) -> list[PlayerTeam]:
-        return db.query(PlayerTeam).all()
+    def get_by_player(self, player_id: int) -> list[PlayerTeam]:
+        return self.db.query(PlayerTeam).filter(PlayerTeam.player_id == player_id).all()
 
-    def create(self, db: Session, relation: PlayerTeam) -> PlayerTeam:
-        db.add(relation)
-        db.commit()
-        db.refresh(relation)
-        return relation
+    def get_by_player_and_team(self, player_id: int, team_id: int) -> Optional[PlayerTeam]:
+        return self.db.query(PlayerTeam).filter(
+            PlayerTeam.player_id == player_id,
+            PlayerTeam.team_id == team_id,
+        ).first()
 
-    def delete(self, db: Session, relation: PlayerTeam) -> None:
-        db.delete(relation)
-        db.commit()
+    def get_by_number_and_team(self, number: int, team_id: int) -> Optional[PlayerTeam]:
+        return self.db.query(PlayerTeam).filter(
+            PlayerTeam.number == number,
+            PlayerTeam.team_id == team_id,
+        ).first()
+
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[PlayerTeam]:
+        return self.db.query(PlayerTeam).offset(skip).limit(limit).all()
+
+    def create(self, data: PlayerTeamCreate) -> PlayerTeam:
+        pt = PlayerTeam(**data.model_dump())
+        self.db.add(pt)
+        self.db.commit()
+        self.db.refresh(pt)
+        return pt
+
+    def update(self, pt: PlayerTeam, data: PlayerTeamUpdate) -> PlayerTeam:
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(pt, field, value)
+        self.db.commit()
+        self.db.refresh(pt)
+        return pt
+
+    def delete(self, pt: PlayerTeam) -> None:
+        self.db.delete(pt)
+        self.db.commit()

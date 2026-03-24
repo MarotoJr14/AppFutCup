@@ -1,33 +1,26 @@
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Enum, Index, func
-from sqlalchemy.orm import Mapped, mapped_column
-from app.db.base import Base
 from datetime import datetime
-from .enums import MatchStatus, MatchRound
+from typing import Optional
+from sqlalchemy import Integer, String, ForeignKey, DateTime, Enum, Index, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.db.base import Base
+from app.models.enums import MatchRound, MatchStatus
+
 
 class Match(Base):
     __tablename__ = "matches"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    team_home_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=True)
-    team_away_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=True)
-    goals_home: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
-    goals_away: Mapped[int] = mapped_column(Integer, default=0, nullable=True)
-    datetime: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    field: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    team_home_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("teams.id"), nullable=True)
+    team_away_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("teams.id"), nullable=True)
+    goals_home: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    goals_away: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    datetime: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    field: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    tournament_id: Mapped[int] = mapped_column(Integer, ForeignKey("tournaments.id"), nullable=False)
     round: Mapped[MatchRound] = mapped_column(Enum(MatchRound), nullable=False)
-    status: Mapped[MatchStatus] = mapped_column(Enum(MatchStatus), default=MatchStatus.pending, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
-    )
-    updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=True
-    )
+    status: Mapped[MatchStatus] = mapped_column(Enum(MatchStatus), nullable=False, default=MatchStatus.Pending)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=func.now())
     
     __table_args__ = (
         Index("idx_matches_teams", "team_home_id", "team_away_id"),

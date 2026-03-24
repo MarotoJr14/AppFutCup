@@ -1,43 +1,51 @@
 import enum
 
-class UserRole(enum.Enum):
+
+class UserRole(str, enum.Enum):
     admin = "admin"
     org = "org"
     user = "user"
 
-class MatchStatus(enum.Enum):
-    pending = "pending"
-    playing = "playing"
-    finished = "finished"
-    
-class MatchRound(enum.Enum):
-    quarterfinal = "quarterfinal"
-    semifinal = "semifinal"
-    final = "final"
 
-class LineupRole(enum.Enum):
-    starter = "starter"
-    bench = "bench"
+class MatchRound(str, enum.Enum):
+    RoundOf16 = "RoundOf16"
+    Quarterfinal = "Quarterfinal"
+    Semifinal = "Semifinal"
+    Final = "Final"
 
-class EventType(enum.Enum):
-    goal = "goal"
-    owngoal = "owngoal"
-    yellow = "yellow"
-    red = "red"
-    yellowX2 = "yellowX2"
 
-class EntityType(enum.Enum):
-    user = "user"
-    tournament = "tournament"
-    user_tournament = "user_tournament"
-    team = "team"
-    player = "player"
-    player_team = "player_team"
-    match = "match"
-    event = "event"
-    lineup = "lineup"
-    
-class ActionType(enum.Enum):
-    create = "create"
-    update = "update"
-    delete = "delete"
+class MatchStatus(str, enum.Enum):
+    Pending = "Pending"
+    Playing = "Playing"
+    Finished = "Finished"
+
+
+class LineupRole(str, enum.Enum):
+    Starter = "Starter"
+    Bench = "Bench"
+
+
+class EventType(str, enum.Enum):
+    Goal = "Goal"
+    Owngoal = "Owngoal"
+    Yellow = "Yellow"
+    YellowX2 = "YellowX2"
+    Red = "Red"
+
+
+class AuditEntity(str, enum.Enum):
+    User = "User"
+    Tournament = "Tournament"
+    User_tournament = "User_tournament"
+    Team = "Team"
+    Player = "Player"
+    Player_team = "Player_team"
+    Match = "Match"
+    Event = "Event"
+    Lineup = "Lineup"
+
+
+class AuditAction(str, enum.Enum):
+    Create = "Create"
+    Update = "Update"
+    Delete = "Delete"

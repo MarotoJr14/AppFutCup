@@ -1,89 +1,48 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List
-
 from app.db.deps import get_db
-from app.api.v1.deps import get_current_user, require_roles
-from app.models.event import Event
-from app.models.match import Match
-from app.models.player import Player
-from app.models.user import User
-from app.schemas.event import EventCreate, EventUpdate, EventResponse
+from app.api.v1.deps import get_current_user, require_org, require_admin
 from app.services.event_service import EventService
+from app.schemas.event_schema import EventCreate, EventUpdate, EventOut
+from app.models.user import User
 
-router = APIRouter(prefix="/events", tags=["events"])
-
-event_service = EventService()
-
-@router.get("/", response_model=List[EventResponse])
-def list_events(
-    match_id: int | None = None,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    return event_service.list_events(db, match_id)
+router = APIRouter(prefix="/events", tags=["Events"])
 
 
-@router.get("/{event_id}", response_model=EventResponse)
-def get_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    event = db.query(Event).filter(Event.id == event_id).first()
-
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    return event
-
-@router.post("/", response_model=EventResponse)
-def create_event(
-    payload: EventCreate,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "org")),
-):
-    try:
-        return event_service.create_event(
-            db,
-            payload.match_id,
-            payload.player_id,
-            payload.event_type,
-            payload.minute,
-            payload.description,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.get("/top-scorers", response_model=list[dict])
+def top_scorers(tournament_id: int, limit: int = 20,
+                db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    rows = EventService(db).get_top_scorers(tournament_id, limit)
+    return [
+        {"player_id": r.player_id, "player_name": r.player_name, "team_name": r.team_name, "goals": r.goals}
+        for r in rows
+    ]
 
 
-@router.put("/{event_id}", response_model=EventResponse)
-def update_event(
-    event_id: int,
-    payload: EventUpdate,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "org")),
-):
-    event = db.query(Event).filter(Event.id == event_id).first()
+@router.get("/", response_model=list[EventOut])
+def get_all(match_id: int | None = None, skip: int = 0, limit: int = 100,
+            db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    svc = EventService(db)
+    if match_id:
+        return svc.get_by_match(match_id)
+    return svc.get_all(skip, limit)
 
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
-        setattr(event, field, value)
+@router.get("/{event_id}", response_model=EventOut)
+def get_by_id(event_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    return EventService(db).get_by_id(event_id)
 
-    db.commit()
-    db.refresh(event)
 
-    return event
+@router.post("/", response_model=EventOut, status_code=201)
+def create(data: EventCreate, db: Session = Depends(get_db), _: User = Depends(require_org)):
+    return EventService(db).create(data)
 
-@router.delete("/{event_id}")
-def delete_event(
-    event_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
-):
-    try:
-        event_service.delete_event(db, event_id)
-        return {"message": "Event deleted successfully"}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+
+@router.patch("/{event_id}", response_model=EventOut)
+def update(event_id: int, data: EventUpdate, db: Session = Depends(get_db), _: User = Depends(require_org)):
+    return EventService(db).update(event_id, data)
+
+
+@router.delete("/{event_id}", status_code=204)
+def delete(event_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    EventService(db).delete(event_id)

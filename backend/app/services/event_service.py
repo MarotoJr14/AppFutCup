@@ -1,84 +1,60 @@
 from sqlalchemy.orm import Session
-from app.models.event import Event
+from fastapi import HTTPException
 from app.repositories.event_repository import EventRepository
 from app.repositories.match_repository import MatchRepository
-from app.repositories.player_repository import PlayerRepository
-from app.repositories.team_repository import TeamRepository
+from app.repositories.tournament_repository import TournamentRepository
+from app.services.audit_log_service import AuditLogService
+from app.utils.tournament_guard import require_active_tournament
+from app.schemas.event_schema import EventCreate, EventUpdate
+from app.models.event import Event
+from app.models.enums import AuditEntity, AuditAction
 
 
 class EventService:
+    def __init__(self, db: Session):
+        self.repo = EventRepository(db)
+        self.match_repo = MatchRepository(db)
+        self.tournament_repo = TournamentRepository(db)
+        self.audit = AuditLogService(db)
 
-    def __init__(self):
-        self.event_repo = EventRepository()
-        self.match_repo = MatchRepository()
-        self.player_repo = PlayerRepository()
-        self.team_repo = TeamRepository()
+    def _require_active_by_match(self, match_id: int) -> None:
+        match = self.match_repo.get_by_id(match_id)
+        if not match:
+            raise HTTPException(status_code=404, detail="Partido no encontrado")
+        tournament = self.tournament_repo.get_by_id(match.tournament_id)
+        if not tournament:
+            raise HTTPException(status_code=404, detail="Torneo no encontrado")
+        require_active_tournament(tournament)
 
-    # 🔎 Get
-    def get_event(self, db: Session, event_id: int) -> Event:
-        event = self.event_repo.get_by_id(db, event_id)
-        if not event:
-            raise ValueError("Event not found")
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[Event]:
+        return self.repo.get_all(skip, limit)
+
+    def get_by_id(self, event_id: int) -> Event:
+        e = self.repo.get_by_id(event_id)
+        if not e:
+            raise HTTPException(status_code=404, detail="Evento no encontrado")
+        return e
+
+    def get_by_match(self, match_id: int) -> list[Event]:
+        return self.repo.get_by_match(match_id)
+
+    def get_top_scorers(self, tournament_id: int, limit: int = 20):
+        return self.repo.get_top_scorers(tournament_id, limit)
+
+    def create(self, data: EventCreate, actor_id: int) -> Event:
+        self._require_active_by_match(data.match_id)
+        event = self.repo.create(data)
+        self.audit.log(AuditEntity.Event, AuditAction.Create, actor_id, f"event_id={event.id}")
         return event
 
-    # 📋 List
-    def list_events(
-        self,
-        db: Session,
-        match_id: int | None = None,
-    ) -> list[Event]:
-        return self.event_repo.list(db, match_id)
+    def update(self, event_id: int, data: EventUpdate, actor_id: int) -> Event:
+        event = self.get_by_id(event_id)
+        self._require_active_by_match(event.match_id)
+        updated = self.repo.update(event, data)
+        self.audit.log(AuditEntity.Event, AuditAction.Update, actor_id, f"event_id={event_id}")
+        return updated
 
-    # ➕ Create
-    def create_event(
-        self,
-        db: Session,
-        match_id: int,
-        player_id: int,
-        event_type: str,
-        minute: int,
-        description: str | None = None,
-    ) -> Event:
-
-        # 1️⃣ Validar match
-        match = self.match_repo.get_by_id(db, match_id)
-        if not match:
-            raise ValueError("Match not found")
-
-        # 2️⃣ Validar jugador
-        player = self.player_repo.get_by_id(db, player_id)
-        if not player:
-            raise ValueError("Player not found")
-
-        # 3️⃣ Validar minuto
-        if minute < 0 or minute > 130:
-            raise ValueError("Invalid minute")
-
-        # 4️⃣ Validar que el jugador pertenezca a uno de los equipos del match
-        player_team_id = player.team_id
-
-        if player_team_id not in [match.home_team_id, match.away_team_id]:
-            raise ValueError(
-                "Player does not belong to any team in this match"
-            )
-
-        # 5️⃣ Validar tipo de evento permitido
-        allowed_types = ["goal", "yellow_card", "red_card", "substitution"]
-
-        if event_type not in allowed_types:
-            raise ValueError("Invalid event type")
-
-        event = Event(
-            match_id=match_id,
-            player_id=player_id,
-            event_type=event_type,
-            minute=minute,
-            description=description,
-        )
-
-        return self.event_repo.create(db, event)
-
-    # 🗑 Delete
-    def delete_event(self, db: Session, event_id: int):
-        event = self.get_event(db, event_id)
-        self.event_repo.delete(db, event)
+    def delete(self, event_id: int, actor_id: int) -> None:
+        event = self.get_by_id(event_id)
+        self.repo.delete(event)
+        self.audit.log(AuditEntity.Event, AuditAction.Delete, actor_id, f"event_id={event_id}")

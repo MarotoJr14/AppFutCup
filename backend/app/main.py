@@ -1,17 +1,26 @@
 from fastapi import FastAPI
-from app.api.v1.routes import auth, users, tournaments, teams, players, player_teams, matches, events, lineups
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1.api import api_router
 
 app = FastAPI(
     title="FutCup API",
-    version="1.0.0"
+    description="API para la gestión del torneo FutCup organizado por Pro2FP",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(tournaments.router)
-app.include_router(teams.router)
-app.include_router(players.router)
-app.include_router(player_teams.router)
-app.include_router(matches.router)
-app.include_router(events.router)
-app.include_router(lineups.router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router)
+
+
+@app.get("/", tags=["Health"])
+def health_check():
+    return {"status": "ok", "app": "FutCup API"}

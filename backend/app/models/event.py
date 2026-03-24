@@ -1,30 +1,23 @@
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Enum, Index, func
-from sqlalchemy.orm import Mapped, mapped_column
-from app.db.base import Base
 from datetime import datetime
-from .enums import EventType
+from typing import Optional
+from sqlalchemy import Integer, String, ForeignKey, DateTime, Enum, Index, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.db.base import Base
+from app.models.enums import EventType
+
 
 class Event(Base):
     __tablename__ = "events"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id"), nullable=False)
-    team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False)
-    player_id: Mapped[int] = mapped_column( ForeignKey("players.id"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    match_id: Mapped[int] = mapped_column(Integer, ForeignKey("matches.id"), nullable=False)
+    team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
+    player_id: Mapped[int] = mapped_column(Integer, ForeignKey("players.id"), nullable=False)
     event_type: Mapped[EventType] = mapped_column(Enum(EventType), nullable=False)
-    minute: Mapped[int] = mapped_column(Integer, nullable=True)
-    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False
-    )
-    updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=True
-    )
+    minute: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=func.now())
     
     __table_args__ = (
             Index("idx_events_match_id", "match_id"),

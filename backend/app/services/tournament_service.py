@@ -1,72 +1,56 @@
+from typing import Optional
 from sqlalchemy.orm import Session
-from app.models.tournament import Tournament
+from fastapi import HTTPException
 from app.repositories.tournament_repository import TournamentRepository
+from app.services.audit_log_service import AuditLogService
+from app.schemas.tournament_schema import TournamentCreate, TournamentUpdate
+from app.models.tournament import Tournament
+from app.models.enums import AuditEntity, AuditAction
 
 
 class TournamentService:
+    def __init__(self, db: Session):
+        self.repo = TournamentRepository(db)
+        self.audit = AuditLogService(db)
 
-    def __init__(self):
-        self.tournament_repo = TournamentRepository()
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[Tournament]:
+        return self.repo.get_all(skip, limit)
 
-    # 🔎 Obtener por ID
-    def get_tournament(self, db: Session, tournament_id: int) -> Tournament:
-        tournament = self.tournament_repo.get_by_id(db, tournament_id)
-        if not tournament:
-            raise ValueError("Tournament not found")
-        return tournament
+    def get_by_id(self, tournament_id: int) -> Tournament:
+        t = self.repo.get_by_id(tournament_id)
+        if not t:
+            raise HTTPException(status_code=404, detail="Torneo no encontrado")
+        return t
 
-    # 📋 Listar todos
-    def list_tournaments(self, db: Session) -> list[Tournament]:
-        return self.tournament_repo.list(db)
+    def get_active(self) -> Optional[Tournament]:
+        return self.repo.get_active()
 
-    # ➕ Crear
-    def create_tournament(
-        self,
-        db: Session,
-        name: str,
-        year: int,
-    ) -> Tournament:
+    def create(self, data: TournamentCreate, actor_id: int) -> Tournament:
+        if self.repo.get_by_name(data.name):
+            raise HTTPException(status_code=400, detail="Ya existe un torneo con ese nombre")
+        if data.is_active:
+            self._deactivate_current(actor_id)
+        t = self.repo.create(data)
+        self.audit.log(AuditEntity.Tournament, AuditAction.Create, actor_id, f"tournament_id={t.id}")
+        return t
 
-        existing = self.tournament_repo.get_by_name_year(db, name, year)
-        if existing:
-            raise ValueError("Tournament with this name and year already exists")
+    def update(self, tournament_id: int, data: TournamentUpdate, actor_id: int) -> Tournament:
+        t = self.get_by_id(tournament_id)
+        if data.name and data.name != t.name and self.repo.get_by_name(data.name):
+            raise HTTPException(status_code=400, detail="Ya existe un torneo con ese nombre")
+        if data.is_active is True:
+            self._deactivate_current(actor_id, exclude_id=tournament_id)
+        updated = self.repo.update(t, data)
+        self.audit.log(AuditEntity.Tournament, AuditAction.Update, actor_id, f"tournament_id={tournament_id}")
+        return updated
 
-        tournament = Tournament(
-            name=name,
-            year=year,
-        )
+    def delete(self, tournament_id: int, actor_id: int) -> None:
+        t = self.get_by_id(tournament_id)
+        self.repo.delete(t)
+        self.audit.log(AuditEntity.Tournament, AuditAction.Delete, actor_id, f"tournament_id={tournament_id}")
 
-        return self.tournament_repo.create(db, tournament)
-
-    # ✏️ Actualizar
-    def update_tournament(
-        self,
-        db: Session,
-        tournament_id: int,
-        name: str | None,
-        year: int | None,
-    ) -> Tournament:
-
-        tournament = self.get_tournament(db, tournament_id)
-
-        new_name = name if name else tournament.name
-        new_year = year if year else tournament.year
-
-        existing = self.tournament_repo.get_by_name_year(db, new_name, new_year)
-        if existing and existing.id != tournament_id:
-            raise ValueError("Another tournament with this name and year already exists")
-
-        if name:
-            tournament.name = name
-        if year:
-            tournament.year = year
-
-        db.commit()
-        db.refresh(tournament)
-
-        return tournament
-
-    # 🗑 Eliminar
-    def delete_tournament(self, db: Session, tournament_id: int):
-        tournament = self.get_tournament(db, tournament_id)
-        self.tournament_repo.delete(db, tournament)
+    def _deactivate_current(self, actor_id: int, exclude_id: int | None = None) -> None:
+        active = self.repo.get_active()
+        if active and active.id != exclude_id:
+            self.repo.update(active, TournamentUpdate(is_active=False))
+            self.audit.log(AuditEntity.Tournament, AuditAction.Update, actor_id, f"deactivated tournament_id={active.id}")
