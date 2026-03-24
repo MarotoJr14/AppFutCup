@@ -18,7 +18,7 @@ const COLUMNS = [
   { key: 'id',         label: 'ID' },
   { key: 'entity',     label: 'Entidad' },
   { key: 'action',     label: 'Acción' },
-  { key: 'user_id',    label: 'Usuario ID' },
+  { key: 'user_id',    label: 'ID Usuario' },
   { key: 'details',    label: 'Detalles' },
   { key: 'created_at', label: 'Fecha', csvRender: fmtDt },
 ]
@@ -67,7 +67,7 @@ export default function AuditLogsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-surface-alt border-b border-border">
-              {['ID','Entidad','Acción','Usuario','Detalles','Fecha'].map(h => (
+              {['ID','Entidad','Acción','ID Usuario','Detalles','Fecha'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-primary font-semibold">{h}</th>
               ))}
             </tr>

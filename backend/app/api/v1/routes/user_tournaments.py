@@ -22,14 +22,14 @@ def get_my_tournaments(db: Session = Depends(get_db), current_user: User = Depen
 @router.post("/follow", response_model=UserTournamentOut, status_code=201)
 def follow(data: UserTournamentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     data.user_id = current_user.id
-    return UserTournamentService(db).follow(data)
+    return UserTournamentService(db).follow(data, actor_id=current_user.id)
 
 
 @router.delete("/unfollow/{tournament_id}", status_code=204)
 def unfollow(tournament_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    UserTournamentService(db).unfollow(current_user.id, tournament_id)
+    UserTournamentService(db).unfollow(current_user.id, tournament_id, actor_id=current_user.id)
 
 
 @router.delete("/{ut_id}", status_code=204)
-def delete(ut_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    UserTournamentService(db).delete_by_id(ut_id)
+def delete(ut_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    UserTournamentService(db).delete_by_id(ut_id, actor_id=current_user.id)

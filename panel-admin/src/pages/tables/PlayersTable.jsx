@@ -77,7 +77,7 @@ function CreatePlayerWizard({ teams, onClose, onSuccess, onToast }) {
             <div className="space-y-3">
               <div className="bg-warning/10 border border-warning/40 rounded-lg p-3 text-warning text-sm">Jugador no encontrado. Completa sus datos.</div>
               <div><label className="text-hint text-sm mb-1 block">Nombre <span className="text-error">*</span></label><input type="text" value={name} onChange={e => setName(e.target.value)} className="input-base" /></div>
-              <div><label className="text-hint text-sm mb-1 block">DNI (fijo)</label><input type="text" value={dni} readOnly className="input-base opacity-50 cursor-not-allowed" /></div>
+              <div><label className="text-hint text-sm mb-1 block">DNI</label><input type="text" value={dni} readOnly className="input-base opacity-50 cursor-not-allowed" /></div>
             </div>
           )}
           <div><label className="text-hint text-sm mb-1 block">Equipo <span className="text-error">*</span></label><select value={teamId} onChange={e => setTeamId(e.target.value)} className="input-base bg-surface-alt"><option value="">— Selecciona equipo —</option>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>

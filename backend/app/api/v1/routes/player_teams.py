@@ -32,21 +32,20 @@ def get_by_id(pt_id: int, db: Session = Depends(get_db), _: User = Depends(get_c
 
 
 @router.post("/", response_model=PlayerTeamOut, status_code=201)
-def add_player_to_team(data: PlayerTeamCreate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return PlayerTeamService(db).add_player_to_team(data)
+def add_player_to_team(data: PlayerTeamCreate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return PlayerTeamService(db).add_player_to_team(data, actor_id=current_user.id)
 
 
 @router.post("/register", response_model=PlayerTeamOut, status_code=201)
-def register_player(data: RegisterPlayerRequest, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    """Search player by DNI; create if not found, then add to team."""
-    return PlayerTeamService(db).register_player(data.dni, data.name, data.team_id, data.number)
+def register_player(data: RegisterPlayerRequest, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return PlayerTeamService(db).register_player(data.dni, data.name, data.team_id, data.number, actor_id=current_user.id)
 
 
 @router.patch("/{pt_id}", response_model=PlayerTeamOut)
-def update(pt_id: int, data: PlayerTeamUpdate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return PlayerTeamService(db).update(pt_id, data)
+def update(pt_id: int, data: PlayerTeamUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return PlayerTeamService(db).update(pt_id, data, actor_id=current_user.id)
 
 
 @router.delete("/{pt_id}", status_code=204)
-def delete(pt_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    PlayerTeamService(db).delete(pt_id)
+def delete(pt_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    PlayerTeamService(db).delete(pt_id, actor_id=current_user.id)

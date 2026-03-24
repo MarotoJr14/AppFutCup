@@ -34,15 +34,15 @@ def get_by_id(event_id: int, db: Session = Depends(get_db), _: User = Depends(ge
 
 
 @router.post("/", response_model=EventOut, status_code=201)
-def create(data: EventCreate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return EventService(db).create(data)
+def create(data: EventCreate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return EventService(db).create(data, actor_id=current_user.id)
 
 
 @router.patch("/{event_id}", response_model=EventOut)
-def update(event_id: int, data: EventUpdate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return EventService(db).update(event_id, data)
+def update(event_id: int, data: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return EventService(db).update(event_id, data, actor_id=current_user.id)
 
 
 @router.delete("/{event_id}", status_code=204)
-def delete(event_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    EventService(db).delete(event_id)
+def delete(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    EventService(db).delete(event_id, actor_id=current_user.id)

@@ -24,15 +24,15 @@ def get_by_id(team_id: int, db: Session = Depends(get_db), _: User = Depends(get
 
 
 @router.post("/", response_model=TeamOut, status_code=201)
-def create(data: TeamCreate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return TeamService(db).create(data)
+def create(data: TeamCreate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return TeamService(db).create(data, actor_id=current_user.id)
 
 
 @router.patch("/{team_id}", response_model=TeamOut)
-def update(team_id: int, data: TeamUpdate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return TeamService(db).update(team_id, data)
+def update(team_id: int, data: TeamUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return TeamService(db).update(team_id, data, actor_id=current_user.id)
 
 
 @router.delete("/{team_id}", status_code=204)
-def delete(team_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    TeamService(db).delete(team_id)
+def delete(team_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    TeamService(db).delete(team_id, actor_id=current_user.id)

@@ -16,15 +16,15 @@ const fmtDt = v => v ? new Date(v).toLocaleString('es-ES', { day:'2-digit', mont
 
 const COLUMNS = [
   { key: 'id',         label: 'ID' },
-  { key: 'username',   label: 'Username' },
-  { key: 'email',      label: 'Email' },
+  { key: 'username',   label: 'Usuario' },
+  { key: 'email',      label: 'Correo' },
   { key: 'role',       label: 'Rol' },
   { key: 'created_at', label: 'Creado',     render: fmtDt, csvRender: fmtDt },
   { key: 'updated_at', label: 'Modificado', render: fmtDt, csvRender: fmtDt },
 ]
 const FIELDS = [
-  { key: 'username', label: 'Username', required: true },
-  { key: 'email',    label: 'Email', required: true, type: 'email' },
+  { key: 'username', label: 'Usuario', required: true },
+  { key: 'email',    label: 'Correo electrónico', required: true, type: 'email' },
   { key: 'password', label: 'Contraseña', type: 'password', required: true, placeholder: 'Mín. 8 caracteres' },
   { key: 'role',     label: 'Rol', required: true, type: 'select', options: [{ value: 'admin', label: 'Admin' }, { value: 'org', label: 'Org' }, { value: 'user', label: 'User' }] },
 ]

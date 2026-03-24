@@ -5,9 +5,17 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+// Ensure all URLs end with a trailing slash to avoid FastAPI redirects
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+
+  // Add trailing slash if the URL doesn't already have one and has no query params
+  const url = config.url || ''
+  if (!url.endsWith('/') && !url.includes('?') && !url.match(/\/\d+$/)) {
+    config.url = url + '/'
+  }
+
   return config
 })
 

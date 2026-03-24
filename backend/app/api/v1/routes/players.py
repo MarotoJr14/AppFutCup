@@ -25,15 +25,15 @@ def get_by_id(player_id: int, db: Session = Depends(get_db), _: User = Depends(g
 
 
 @router.post("/", response_model=PlayerOut, status_code=201)
-def create(data: PlayerCreate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return PlayerService(db).create(data)
+def create(data: PlayerCreate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return PlayerService(db).create(data, actor_id=current_user.id)
 
 
 @router.patch("/{player_id}", response_model=PlayerOut)
-def update(player_id: int, data: PlayerUpdate, db: Session = Depends(get_db), _: User = Depends(require_org)):
-    return PlayerService(db).update(player_id, data)
+def update(player_id: int, data: PlayerUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_org)):
+    return PlayerService(db).update(player_id, data, actor_id=current_user.id)
 
 
 @router.delete("/{player_id}", status_code=204)
-def delete(player_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    PlayerService(db).delete(player_id)
+def delete(player_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    PlayerService(db).delete(player_id, actor_id=current_user.id)

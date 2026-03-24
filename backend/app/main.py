@@ -20,7 +20,6 @@ app.add_middleware(
 
 app.include_router(api_router)
 
-
 @app.get("/", tags=["Health"])
 def health_check():
     return {"status": "ok", "app": "FutCup API"}

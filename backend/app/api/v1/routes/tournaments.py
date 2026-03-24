@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.deps import get_db
 from app.api.v1.deps import get_current_user, require_admin
@@ -7,6 +7,14 @@ from app.schemas.tournament_schema import TournamentCreate, TournamentUpdate, To
 from app.models.user import User
 
 router = APIRouter(prefix="/tournaments", tags=["Tournaments"])
+
+
+@router.get("/active", response_model=TournamentOut)
+def get_active(db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    t = TournamentService(db).get_active()
+    if not t:
+        raise HTTPException(status_code=404, detail="No hay ningún torneo activo")
+    return t
 
 
 @router.get("/", response_model=list[TournamentOut])
@@ -20,15 +28,15 @@ def get_by_id(tournament_id: int, db: Session = Depends(get_db), _: User = Depen
 
 
 @router.post("/", response_model=TournamentOut, status_code=201)
-def create(data: TournamentCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    return TournamentService(db).create(data)
+def create(data: TournamentCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    return TournamentService(db).create(data, actor_id=current_user.id)
 
 
 @router.patch("/{tournament_id}", response_model=TournamentOut)
-def update(tournament_id: int, data: TournamentUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    return TournamentService(db).update(tournament_id, data)
+def update(tournament_id: int, data: TournamentUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    return TournamentService(db).update(tournament_id, data, actor_id=current_user.id)
 
 
 @router.delete("/{tournament_id}", status_code=204)
-def delete(tournament_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    TournamentService(db).delete(tournament_id)
+def delete(tournament_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    TournamentService(db).delete(tournament_id, actor_id=current_user.id)

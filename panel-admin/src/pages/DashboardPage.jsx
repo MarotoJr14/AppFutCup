@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import Layout from '../components/layout/Layout'
 
 const TABLES = [
-  { key: 'users',       label: 'Usiarios',       icon: '👥', desc: 'Gestión de usuarios del sistema' },
+  { key: 'users',       label: 'Usuarios',       icon: '👥', desc: 'Gestión de usuarios del sistema' },
   { key: 'tournaments', label: 'Torneos',        icon: '🏆', desc: 'Gestión de torneos registrados' },
   { key: 'teams',       label: 'Equipos',        icon: '🛡️', desc: 'Gestión de equipos registrados' },
   { key: 'players',     label: 'Jugadores',      icon: '⚽', desc: 'Gestión de jugadores registrados' },
