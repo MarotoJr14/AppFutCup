@@ -40,7 +40,7 @@ export default function TeamsTable() {
     { key: 'id',            label: 'ID' },
     { key: 'name',          label: 'Nombre' },
     { key: 'group',         label: 'Grupo' },
-    { key: 'kit_color',     label: 'Equipación' },
+    { key: 'kit_color',     label: 'Color' },
     { key: 'tournament_id', label: 'Torneo',     render: v => tName(v), csvRender: v => tName(v) },
     { key: 'created_at',    label: 'Creado',     render: fmtDt, csvRender: fmtDt },
     { key: 'updated_at',    label: 'Modificado', render: fmtDt, csvRender: fmtDt },
@@ -118,28 +118,25 @@ export default function TeamsTable() {
           <GenericForm fields={fields} onSubmit={handleCreate} onCancel={() => setModal(null)} submitLabel="Crear equipo" />
         </Modal>
       )}
-
       {modal === 'edit' && selected && (
         <Modal title={`Editar: ${selected.name}`} onClose={() => setModal(null)}>
           <GenericForm fields={fields} initial={selected} onSubmit={handleEdit} onCancel={() => setModal(null)} submitLabel="Guardar cambios" />
         </Modal>
       )}
-
       {modal === 'import' && (
         <ImportModal title="Teams" templateHeaders={TEMPLATE_HEADERS}
           contextFields={[{ key: 'tournament_id', label: 'Torneo destino', options: tournaments.map(t => ({ value: t.id, label: t.name })) }]}
           onImport={handleImport} onClose={() => setModal(null)} />
       )}
-
       {toast && <Toast {...toast} onClose={hideToast} />}
     </div>
   )
 }
 
-// Players list — read only except for removing the assignment
 function TeamPlayers({ teamId, players, onToast }) {
   const [playerTeams, setPlayerTeams] = useState([])
   const [loading, setLoading] = useState(true)
+  const [editingNumber, setEditingNumber] = useState({}) // ptId -> value
 
   const load = () => {
     setLoading(true)
@@ -154,6 +151,24 @@ function TeamPlayers({ teamId, players, onToast }) {
   const handleRemove = async (ptId) => {
     try { await api.delete(`/player-teams/${ptId}`); load(); onToast('Jugador desvinculado del equipo') }
     catch (e) { onToast(e.response?.data?.detail || 'Error', 'error') }
+  }
+
+  const handleNumberChange = (ptId, value) => {
+    setEditingNumber(prev => ({ ...prev, [ptId]: value }))
+  }
+
+  const handleNumberSave = async (pt) => {
+    const newNumber = Number(editingNumber[pt.id])
+    if (!newNumber || newNumber === pt.number) return
+    try {
+      await api.patch(`/player-teams/${pt.id}`, { number: newNumber })
+      load()
+      onToast('Dorsal actualizado')
+    } catch (e) {
+      onToast(e.response?.data?.detail || 'Error', 'error')
+      // Reset to original
+      setEditingNumber(prev => ({ ...prev, [pt.id]: pt.number }))
+    }
   }
 
   if (loading) return <Spinner />
@@ -171,16 +186,27 @@ function TeamPlayers({ teamId, players, onToast }) {
         <div className="space-y-1">
           {playerTeams.map(pt => {
             const player = players.find(p => p.id === pt.player_id)
+            const currentNumber = editingNumber[pt.id] ?? pt.number
             return (
-              <div key={pt.id} className="flex items-center justify-between bg-surface-alt px-3 py-2 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="text-primary font-bold w-8 text-sm">#{pt.number}</span>
-                  <span className="text-white text-sm">{player?.name ?? `Jugador #${pt.player_id}`}</span>
-                  {player?.dni && <span className="text-hint text-xs">{player.dni}</span>}
-                </div>
+              <div key={pt.id} className="flex items-center gap-3 bg-surface-alt px-3 py-2 rounded-lg">
+                {/* Editable dorsal */}
+                <input
+                  type="number"
+                  value={currentNumber}
+                  onChange={e => handleNumberChange(pt.id, e.target.value)}
+                  onBlur={() => handleNumberSave(pt)}
+                  onKeyDown={e => e.key === 'Enter' && handleNumberSave(pt)}
+                  className="w-14 bg-bg border border-border rounded px-2 py-1 text-primary font-bold text-sm text-center focus:border-primary focus:outline-none"
+                  min={1}
+                  title="Editar dorsal"
+                />
+                {/* Player info */}
+                <span className="text-white text-sm flex-1">{player?.name ?? `Jugador #${pt.player_id}`}</span>
+                {player?.dni && <span className="text-hint text-xs">{player.dni}</span>}
+                {/* Remove */}
                 <button
                   onClick={() => handleRemove(pt.id)}
-                  className="text-error text-xs hover:underline"
+                  className="text-error text-xs hover:underline ml-2"
                   title="Desvincular jugador del equipo"
                 >
                   Quitar
@@ -190,6 +216,7 @@ function TeamPlayers({ teamId, players, onToast }) {
           })}
         </div>
       )}
+      <p className="text-hint text-xs mt-2">Haz clic en el dorsal para editarlo y pulsa Enter o haz clic fuera para guardar.</p>
     </div>
   )
 }

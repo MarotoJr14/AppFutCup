@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 import '../core/network/dio_client.dart';
 import '../core/network/api_exception.dart';
+import '../core/storage/secure_storage.dart';
 import '../models/tournament_model.dart';
+import '../models/user_model.dart';
+import 'dart:convert';
 
 class TournamentRepository {
   final _dio = DioClient.instance;
@@ -32,7 +35,15 @@ class TournamentRepository {
 
   Future<void> follow(int tournamentId) async {
     try {
-      await _dio.post('/user-tournaments/follow', data: {'tournament_id': tournamentId});
+      // Retrieve current user id from secure storage
+      final userJson = await SecureStorageService.getUser();
+      if (userJson == null) throw ApiException('Usuario no autenticado');
+      final user = UserModel.fromJsonString(userJson);
+
+      await _dio.post('/user-tournaments/follow', data: {
+        'user_id': user.id,
+        'tournament_id': tournamentId,
+      });
     } on DioException catch (e) { throw ApiException.fromDioError(e); }
   }
 
