@@ -5,6 +5,7 @@ from app.services.audit_log_service import AuditLogService
 from app.schemas.user_schema import UserCreate, UserUpdate
 from app.models.user import User
 from app.models.enums import AuditEntity, AuditAction
+from app.core.security import verify_password
 
 
 class UserService:
@@ -32,6 +33,13 @@ class UserService:
 
     def update(self, user_id: int, data: UserUpdate, actor_id: int) -> User:
         user = self.get_by_id(user_id)
+
+        # When changing own password, require and validate current password
+        if data.password is not None and actor_id == user_id:
+            if not data.current_password:
+                raise HTTPException(status_code=400, detail="Debes introducir tu contraseña actual")
+            if not verify_password(data.current_password, user.password_hash):
+                raise HTTPException(status_code=400, detail="La contraseña actual no es correcta")
         if data.email and data.email != user.email and self.repo.get_by_email(data.email):
             raise HTTPException(status_code=400, detail="El email ya está en uso")
         if data.username and data.username != user.username and self.repo.get_by_username(data.username):

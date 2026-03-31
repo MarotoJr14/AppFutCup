@@ -15,6 +15,11 @@ def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.patch("/me", response_model=UserOut)
+def update_me(data: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return UserService(db).update(current_user.id, data, actor_id=current_user.id)
+
+
 @router.get("/", response_model=list[UserOut])
 def get_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return UserService(db).get_all(skip, limit)

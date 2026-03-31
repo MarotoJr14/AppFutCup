@@ -18,6 +18,16 @@ class PlayerTeamRepository:
     def get_by_player(self, player_id: int) -> list[PlayerTeam]:
         return self.db.query(PlayerTeam).filter(PlayerTeam.player_id == player_id).all()
 
+    def get_by_player_and_tournament(self, player_id: int, tournament_id: int) -> Optional[PlayerTeam]:
+        from app.models.team import Team
+
+        return (
+            self.db.query(PlayerTeam)
+            .join(Team, Team.id == PlayerTeam.team_id)
+            .filter(PlayerTeam.player_id == player_id, Team.tournament_id == tournament_id)
+            .first()
+        )
+
     def get_by_player_and_team(self, player_id: int, team_id: int) -> Optional[PlayerTeam]:
         return self.db.query(PlayerTeam).filter(
             PlayerTeam.player_id == player_id,

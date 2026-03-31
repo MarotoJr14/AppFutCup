@@ -14,7 +14,13 @@ def top_scorers(tournament_id: int, limit: int = 20,
                 db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     rows = EventService(db).get_top_scorers(tournament_id, limit)
     return [
-        {"player_id": r.player_id, "player_name": r.player_name, "team_name": r.team_name, "goals": r.goals}
+        {
+            "player_id": r.player_id,
+            "player_name": r.player_name,
+            "team_name": r.team_name,
+            "goals": r.goals,
+            "matches_played": r.matches_played or 0,
+        }
         for r in rows
     ]
 

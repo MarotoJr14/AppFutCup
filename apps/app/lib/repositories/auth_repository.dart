@@ -1,0 +1,57 @@
+import 'package:dio/dio.dart';
+import '../core/network/dio_client.dart';
+import '../core/network/api_exception.dart';
+import '../core/storage/secure_storage.dart';
+import '../models/user_model.dart';
+
+class AuthRepository {
+  final _dio = DioClient.instance;
+
+  Future<String> login(String email, String password) async {
+    try {
+      final res = await _dio.post('/auth/login', data: {'email': email, 'password': password});
+      final token = res.data['access_token'] as String;
+      await SecureStorageService.saveToken(token);
+      return token;
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<UserModel> register(String username, String email, String password) async {
+    try {
+      final res = await _dio.post('/auth/register', data: {
+        'username': username, 'email': email, 'password': password, 'role': 'user',
+      });
+      return UserModel.fromJson(res.data['user']);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<UserModel> getMe() async {
+    try {
+      final res = await _dio.get('/users/me');
+      return UserModel.fromJson(res.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<UserModel> updateMe({String? username, String? password, String? currentPassword}) async {
+    try {
+      final data = <String, dynamic>{};
+      if (username != null) data['username'] = username;
+      if (currentPassword != null) data['current_password'] = currentPassword;
+      if (password != null) data['password'] = password;
+      final res = await _dio.patch('/users/me', data: data);
+      return UserModel.fromJson(res.data);
+    } on DioException catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
+
+  Future<void> logout() async {
+    await SecureStorageService.clearAuth();
+  }
+}

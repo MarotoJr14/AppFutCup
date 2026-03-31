@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="gold_primary">#DEBA3B</color>
+    <color name="gold_light">#FFF8E1</color>
+    <color name="silver_light">#F1F3F5</color>
+    <color name="bronze_light">#F6E7DA</color>
+    <color name="black">#212121</color>
+    <color name="white">#F5F5F5</color>
+</resources>

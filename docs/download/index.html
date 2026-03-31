@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FutCup 2026 - Descargar App</title>
+  <style>
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #DEBA3B;
+      color:#212121;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+      padding:20px;
+    }
+
+    .container{
+      text-align:center;
+      max-width:500px;
+      width:100%;
+      padding:40px;
+      background:#F5F5F5;
+      backdrop-filter: blur(10px);
+      border-radius:20px;
+      box-shadow:0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    h1{
+      font-size:2.2rem;
+      margin-bottom:10px;
+      color:#212121;
+    }
+
+    p{
+      color:#212121;
+      margin-bottom:30px;
+      line-height:1.5;
+    }
+
+    .download-btn{
+      display:inline-block;
+      padding:18px 30px;
+      font-size:18px;
+      font-weight:bold;
+      border-radius:12px;
+      background:#DEBA3B;
+      color:#212121;
+      text-decoration:none;
+      transition:0.2s;
+      border:none;
+      cursor:pointer;
+    }
+
+    .download-btn:hover{
+      transform:translateY(-3px);
+      box-shadow:0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .steps{
+      margin-top:35px;
+      text-align:left;
+      font-size:14px;
+      color:#212121;
+    }
+
+    .steps li{
+      margin-bottom:8px;
+    }
+
+    footer{
+      margin-top:30px;
+      font-size:12px;
+      color:#757575;
+    }
+
+    .logo{
+      margin-bottom:10px;
+    }
+
+    .logo img{
+      max-width:150px;
+      width:100%;
+      height:auto;
+    }
+
+    @media (max-width:768px){
+      body{
+        padding:15px;
+      }
+
+      .container{
+        max-width:90vw;
+        padding:30px 20px;
+      }
+
+      h1{
+        font-size:1.8rem;
+        margin-bottom:8px;
+      }
+
+      p{
+        font-size:0.95rem;
+        margin-bottom:20px;
+      }
+
+      .download-btn{
+        padding:15px 25px;
+        font-size:16px;
+      }
+
+      .steps{
+        margin-top:25px;
+        font-size:13px;
+      }
+
+      .steps li{
+        margin-bottom:6px;
+      }
+
+      footer{
+        font-size:11px;
+        margin-top:20px;
+      }
+
+      .logo img{
+        max-width:120px;
+      }
+    }
+
+    @media (max-width:480px){
+      body{
+        padding:10px;
+      }
+
+      .container{
+        max-width:100vw;
+        padding:20px 15px;
+        border-radius:15px;
+      }
+
+      h1{
+        font-size:1.5rem;
+        margin-bottom:10px;
+      }
+
+      p{
+        font-size:0.9rem;
+        margin-bottom:15px;
+      }
+
+      .download-btn{
+        padding:12px 20px;
+        font-size:15px;
+        width:100%;
+      }
+
+      .steps{
+        margin-top:20px;
+        font-size:12px;
+      }
+
+      .steps li{
+        margin-bottom:5px;
+      }
+
+      footer{
+        font-size:10px;
+        margin-top:15px;
+      }
+
+      .logo img{
+        max-width:100px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <div class="logo">
+      <img src="src/images/futcup2026_logo.png" alt="FutCup 2026">
+    </div>
+
+    <h1>FutCup 2026 App</h1>
+
+    <p>
+      ¡Descarga la app oficial de la FutCup 2026!<br>Todo el torneo a tu alcance.
+    </p>
+
+    <!-- CAMBIA ESTE LINK POR EL DE TU APK -->
+    <a class="download-btn" href="src/apk/futcup2026-release.apk" download>
+      Descargar APK
+    </a>
+
+    <ul class="steps">
+      <li>1. Descarga el archivo APK.</li>
+      <li>2. Abre el archivo cuando termine la descarga.</li>
+      <li>3. Permite instalar aplicaciones de orígenes desconocidos.</li>
+      <li>4. Instala la app y disfruta del torneo.</li>
+    </ul>
+
+    <footer>
+      FutCup 2026 App oficial · Gonzalo Bravo Maroto
+    </footer>
+
+  </div>
+
+</body>
+</html>

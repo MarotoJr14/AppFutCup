@@ -1,0 +1,138 @@
+[
+    {
+        "merged": "com.futcup.app-merged_res-4:/drawable_futcup2026_logo.png.flat",
+        "source": "com.futcup.app-main-5:/drawable/futcup2026_logo.png"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xxhdpi_futcup2026_logo_round.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xxhdpi/futcup2026_logo_round.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_nav_header.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/nav_header.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-anydpi-v26_futcup2026_logo.xml.flat",
+        "source": "com.futcup.app-main-5:/mipmap-anydpi-v26/futcup2026_logo.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/drawable_ic_launcher_round.xml.flat",
+        "source": "com.futcup.app-main-5:/drawable/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-mdpi_futcup2026_logo.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-mdpi/futcup2026_logo.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-anydpi-v26_futcup2026_logo_round.xml.flat",
+        "source": "com.futcup.app-main-5:/mipmap-anydpi-v26/futcup2026_logo_round.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-mdpi_futcup2026_logo_foreground.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-mdpi/futcup2026_logo_foreground.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/drawable_card_background.xml.flat",
+        "source": "com.futcup.app-main-5:/drawable/card_background.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-hdpi_futcup2026_logo.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-hdpi/futcup2026_logo.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/menu_nav_menu.xml.flat",
+        "source": "com.futcup.app-main-5:/menu/nav_menu.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_item_llave.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/item_llave.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/raw_torneo.json.flat",
+        "source": "com.futcup.app-main-5:/raw/torneo.json"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_fragment_calendar.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/fragment_calendar.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/drawable_futcup2026_banner.png.flat",
+        "source": "com.futcup.app-main-5:/drawable/futcup2026_banner.png"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_item_partido.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/item_partido.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-hdpi_futcup2026_logo_round.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-hdpi/futcup2026_logo_round.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_item_goleador.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/item_goleador.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_activity_main.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_fragment_bracket.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/fragment_bracket.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xhdpi_futcup2026_logo_round.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xhdpi/futcup2026_logo_round.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xxxhdpi_futcup2026_logo_round.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xxxhdpi/futcup2026_logo_round.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/drawable_futcup2026_mascota.png.flat",
+        "source": "com.futcup.app-main-5:/drawable/futcup2026_mascota.png"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/menu_toolbar_menu.xml.flat",
+        "source": "com.futcup.app-main-5:/menu/toolbar_menu.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-hdpi_futcup2026_logo_foreground.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-hdpi/futcup2026_logo_foreground.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xxhdpi_futcup2026_logo_foreground.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xxhdpi/futcup2026_logo_foreground.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xxxhdpi_futcup2026_logo_foreground.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xxxhdpi/futcup2026_logo_foreground.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xhdpi_futcup2026_logo_foreground.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xhdpi/futcup2026_logo_foreground.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xhdpi_futcup2026_logo.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xhdpi/futcup2026_logo.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_fragment_scorers.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/fragment_scorers.xml"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xxxhdpi_futcup2026_logo.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xxxhdpi/futcup2026_logo.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-xxhdpi_futcup2026_logo.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-xxhdpi/futcup2026_logo.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/mipmap-mdpi_futcup2026_logo_round.webp.flat",
+        "source": "com.futcup.app-main-5:/mipmap-mdpi/futcup2026_logo_round.webp"
+    },
+    {
+        "merged": "com.futcup.app-merged_res-4:/layout_fragment_home.xml.flat",
+        "source": "com.futcup.app-main-5:/layout/fragment_home.xml"
+    }
+]

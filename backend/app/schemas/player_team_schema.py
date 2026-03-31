@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PlayerTeamBase(BaseModel):
     player_id: int
     team_id: int
-    number: int
+    number: int = Field(ge=1, le=99)
 
 
 class PlayerTeamCreate(PlayerTeamBase):
@@ -14,7 +14,7 @@ class PlayerTeamCreate(PlayerTeamBase):
 
 
 class PlayerTeamUpdate(BaseModel):
-    number: Optional[int] = None
+    number: Optional[int] = Field(default=None, ge=1, le=99)
 
 
 class PlayerTeamOut(PlayerTeamBase):

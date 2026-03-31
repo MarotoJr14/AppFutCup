@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 from app.db.deps import get_db
 from app.api.v1.deps import get_current_user, require_org, require_admin
 from app.services.player_team_service import PlayerTeamService
 from app.schemas.player_team_schema import PlayerTeamCreate, PlayerTeamUpdate, PlayerTeamOut
 from app.models.user import User
+from app.schemas.player_schema import _normalize_dni
 
 router = APIRouter(prefix="/player-teams", tags=["Player Teams"])
 
@@ -14,15 +15,25 @@ class RegisterPlayerRequest(BaseModel):
     dni: str
     name: str | None = None
     team_id: int
-    number: int
+    number: int = Field(ge=1, le=99)
+
+    @field_validator("dni")
+    @classmethod
+    def validate_dni(cls, v: str) -> str:
+        return _normalize_dni(v)
 
 
 @router.get("/", response_model=list[PlayerTeamOut])
-def get_all(team_id: int | None = None, skip: int = 0, limit: int = 100,
+def get_all(team_id: int | None = None, player_id: int | None = None, skip: int = 0, limit: int = 100,
             db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     svc = PlayerTeamService(db)
+    if team_id and player_id:
+        pt = svc.get_by_player_and_team(player_id, team_id)
+        return [pt] if pt else []
     if team_id:
         return svc.get_by_team(team_id)
+    if player_id:
+        return svc.get_by_player(player_id)
     return svc.get_all(skip, limit)
 
 

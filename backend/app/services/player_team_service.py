@@ -41,10 +41,21 @@ class PlayerTeamService:
     def get_by_team(self, team_id: int) -> list[PlayerTeam]:
         return self.repo.get_by_team(team_id)
 
+    def get_by_player(self, player_id: int) -> list[PlayerTeam]:
+        return self.repo.get_by_player(player_id)
+
+    def get_by_player_and_team(self, player_id: int, team_id: int) -> PlayerTeam | None:
+        return self.repo.get_by_player_and_team(player_id, team_id)
+
     def add_player_to_team(self, data: PlayerTeamCreate, actor_id: int) -> PlayerTeam:
         self._require_active_by_team(data.team_id)
         if not self.player_repo.get_by_id(data.player_id):
             raise HTTPException(status_code=404, detail="Jugador no encontrado")
+        team = self.team_repo.get_by_id(data.team_id)
+        if team:
+            existing = self.repo.get_by_player_and_tournament(data.player_id, team.tournament_id)
+            if existing and existing.team_id != data.team_id:
+                raise HTTPException(status_code=400, detail="El jugador ya está asignado a otro equipo en este torneo")
         if self.repo.get_by_player_and_team(data.player_id, data.team_id):
             raise HTTPException(status_code=400, detail="El jugador ya está en este equipo")
         if self.repo.get_by_number_and_team(data.number, data.team_id):
@@ -58,12 +69,17 @@ class PlayerTeamService:
         """Create player if not exists, then add to team."""
         self._require_active_by_team(team_id)
         player = self.player_repo.get_by_dni(dni)
+        team = self.team_repo.get_by_id(team_id)
         if not player:
             if not name:
                 raise HTTPException(status_code=400, detail="Nombre requerido para nuevo jugador")
             player = self.player_repo.create(PlayerCreate(name=name, dni=dni))
             self.audit.log(AuditEntity.Player, AuditAction.Create, actor_id, f"player_id={player.id} via register")
         data = PlayerTeamCreate(player_id=player.id, team_id=team_id, number=number)
+        if team:
+            existing = self.repo.get_by_player_and_tournament(player.id, team.tournament_id)
+            if existing and existing.team_id != team_id:
+                raise HTTPException(status_code=400, detail="El jugador ya está asignado a otro equipo en este torneo")
         if self.repo.get_by_player_and_team(player.id, team_id):
             raise HTTPException(status_code=400, detail="El jugador ya está en este equipo")
         if self.repo.get_by_number_and_team(number, team_id):

@@ -17,6 +17,7 @@ class MatchRound(str, enum.Enum):
 class MatchStatus(str, enum.Enum):
     Pending = "Pending"
     Playing = "Playing"
+    Penalties = "Penalties"
     Finished = "Finished"
 
 
@@ -31,6 +32,8 @@ class EventType(str, enum.Enum):
     Yellow = "Yellow"
     YellowX2 = "YellowX2"
     Red = "Red"
+    PenaltyScored = "PenaltyScored"
+    PenaltyMissed = "PenaltyMissed"
 
 
 class AuditEntity(str, enum.Enum):

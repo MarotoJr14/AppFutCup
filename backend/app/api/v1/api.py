@@ -5,7 +5,7 @@ from app.api.v1.routes import (
     lineups, events, player_stats, audit_logs,
 )
 
-api_router = APIRouter(prefix="/api/v1")
+api_router = APIRouter(prefix="/api/v1", redirect_slashes=False)
 
 api_router.include_router(auth.router)
 api_router.include_router(users.router)

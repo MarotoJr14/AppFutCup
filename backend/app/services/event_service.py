@@ -7,11 +7,12 @@ from app.services.audit_log_service import AuditLogService
 from app.utils.tournament_guard import require_active_tournament
 from app.schemas.event_schema import EventCreate, EventUpdate
 from app.models.event import Event
-from app.models.enums import AuditEntity, AuditAction
+from app.models.enums import AuditEntity, AuditAction, EventType, MatchStatus
 
 
 class EventService:
     def __init__(self, db: Session):
+        self.db = db
         self.repo = EventRepository(db)
         self.match_repo = MatchRepository(db)
         self.tournament_repo = TournamentRepository(db)
@@ -43,7 +44,57 @@ class EventService:
 
     def create(self, data: EventCreate, actor_id: int) -> Event:
         self._require_active_by_match(data.match_id)
+        match = self.match_repo.get_by_id(data.match_id)
+        if not match:
+            raise HTTPException(status_code=404, detail="Partido no encontrado")
+        if match.status == MatchStatus.Finished:
+            raise HTTPException(status_code=400, detail="No se pueden añadir eventos a un partido finalizado")
+
+        is_penalty_event = data.event_type in (EventType.PenaltyScored, EventType.PenaltyMissed)
+        if match.status == MatchStatus.Playing and is_penalty_event:
+            raise HTTPException(status_code=400, detail="Los eventos de penaltis solo se pueden añadir durante la tanda de penaltis")
+        if match.status == MatchStatus.Penalties and not is_penalty_event:
+            raise HTTPException(status_code=400, detail="Durante la tanda de penaltis solo se pueden añadir eventos de penaltis")
+        if match.status not in (MatchStatus.Playing, MatchStatus.Penalties):
+            raise HTTPException(status_code=400, detail="No se pueden añadir eventos en el estado actual del partido")
+        if match.team_home_id is None or match.team_away_id is None:
+            raise HTTPException(status_code=400, detail="El partido debe tener equipos asignados antes de crear eventos")
+        if data.team_id not in (match.team_home_id, match.team_away_id):
+            raise HTTPException(status_code=400, detail="El equipo del evento debe ser uno de los equipos del partido")
         event = self.repo.create(data)
+
+        if data.event_type in (EventType.Goal, EventType.Owngoal):
+            goals_home = match.goals_home or 0
+            goals_away = match.goals_away or 0
+
+            if data.event_type == EventType.Goal:
+                if data.team_id == match.team_home_id:
+                    goals_home += 1
+                else:
+                    goals_away += 1
+            else:  # Owngoal
+                if data.team_id == match.team_home_id:
+                    goals_away += 1
+                else:
+                    goals_home += 1
+
+            match.goals_home = goals_home
+            match.goals_away = goals_away
+            self.db.commit()
+            self.db.refresh(match)
+
+        if data.event_type == EventType.PenaltyScored:
+            pen_home = match.pen_home or 0
+            pen_away = match.pen_away or 0
+            if data.team_id == match.team_home_id:
+                pen_home += 1
+            else:
+                pen_away += 1
+            match.pen_home = pen_home
+            match.pen_away = pen_away
+            self.db.commit()
+            self.db.refresh(match)
+
         self.audit.log(AuditEntity.Event, AuditAction.Create, actor_id, f"event_id={event.id}")
         return event
 

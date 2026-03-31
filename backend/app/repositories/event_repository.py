@@ -27,6 +27,25 @@ class EventRepository:
         from app.models.player import Player
         from app.models.player_team import PlayerTeam
         from app.models.team import Team
+        from sqlalchemy.orm import aliased
+        from app.models.lineup import Lineup
+        from app.models.enums import LineupRole
+
+        lineup_match = aliased(Match)
+        matches_played_sq = (
+            self.db.query(
+                Lineup.player_id.label("player_id"),
+                func.count(func.distinct(Lineup.match_id)).label("matches_played"),
+            )
+            .join(lineup_match, lineup_match.id == Lineup.match_id)
+            .filter(
+                lineup_match.tournament_id == tournament_id,
+                Lineup.role.in_([LineupRole.Starter, LineupRole.Bench]),
+            )
+            .group_by(Lineup.player_id)
+        ).subquery()
+
+        matches_played = func.coalesce(matches_played_sq.c.matches_played, 999999)
 
         return (
             self.db.query(
@@ -34,17 +53,24 @@ class EventRepository:
                 Player.name.label("player_name"),
                 Team.name.label("team_name"),
                 func.count(Event.id).label("goals"),
+                matches_played_sq.c.matches_played.label("matches_played"),
             )
             .join(Event, Event.player_id == Player.id)
             .join(Match, Match.id == Event.match_id)
             .join(PlayerTeam, (PlayerTeam.player_id == Player.id) & (PlayerTeam.team_id == Event.team_id))
             .join(Team, Team.id == Event.team_id)
+            .outerjoin(matches_played_sq, matches_played_sq.c.player_id == Player.id)
             .filter(
                 Match.tournament_id == tournament_id,
                 Event.event_type == EventType.Goal,
             )
-            .group_by(Player.id, Player.name, Team.name)
-            .order_by(func.count(Event.id).desc())
+            .group_by(Player.id, Player.name, Team.name, matches_played_sq.c.matches_played)
+            .order_by(
+                func.count(Event.id).desc(),
+                matches_played.asc(),
+                Team.name.asc(),
+                Player.name.asc(),
+            )
             .limit(limit)
             .all()
         )

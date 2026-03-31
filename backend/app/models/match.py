@@ -14,6 +14,8 @@ class Match(Base):
     team_away_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("teams.id"), nullable=True)
     goals_home: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     goals_away: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    pen_home: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    pen_away: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     datetime: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     field: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     tournament_id: Mapped[int] = mapped_column(Integer, ForeignKey("tournaments.id"), nullable=False)
