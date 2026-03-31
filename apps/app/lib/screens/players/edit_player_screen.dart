@@ -43,7 +43,7 @@ class _EditPlayerScreenState extends ConsumerState<EditPlayerScreen> {
     final number = int.tryParse(_numberCtrl.text.trim());
     if (number == null || !_isValidNumber(number)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dorsal inválido (1-99)'), backgroundColor: AppColors.error),
+        const SnackBar(content: Text('Dorsal inválido (1-99)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)),
       );
       return;
     }
@@ -52,7 +52,7 @@ class _EditPlayerScreenState extends ConsumerState<EditPlayerScreen> {
     _dniCtrl.value = TextEditingValue(text: dni, selection: TextSelection.collapsed(offset: dni.length));
     if (!_isValidDni(dni)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error),
+        const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)),
       );
       return;
     }
@@ -74,7 +74,7 @@ class _EditPlayerScreenState extends ConsumerState<EditPlayerScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)),
         );
       }
     }

@@ -52,7 +52,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
 
   Future<void> _submit() async {
     if (_teamId == null || _playerId == null || _eventType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rellena todos los campos obligatorios'), backgroundColor: AppColors.error));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rellena todos los campos obligatorios'), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
       return;
     }
 
@@ -60,7 +60,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     final events = eventsState.valueOrNull;
     if (events == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cargando eventos del partido...'), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cargando eventos del partido...'), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
       }
       return;
     }
@@ -68,7 +68,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
     final validationError = _validatePlayerEventRules(events, _playerId!, _eventType!);
     if (validationError != null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(validationError), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(validationError), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
       }
       return;
     }
@@ -84,7 +84,7 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
       ref.invalidate(matchDetailProvider(widget.matchId));
       if (mounted) context.pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
     }
   }
 

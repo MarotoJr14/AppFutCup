@@ -90,19 +90,13 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
-        await SecureStorageService.saveLastBackgroundAt(DateTime.now().millisecondsSinceEpoch);
+        await logout();
         break;
       case AppLifecycleState.resumed:
-        final lastBg = await SecureStorageService.getLastBackgroundAt();
-        await SecureStorageService.clearLastBackgroundAt();
-        if (lastBg == null) return;
-        final elapsed = DateTime.now().millisecondsSinceEpoch - lastBg;
-        if (elapsed > sessionTimeout.inMilliseconds) {
-          await logout();
-        }
+        // No need to check timeout since we logout on pause
         break;
       case AppLifecycleState.detached:
-        // Best-effort: treat removing the app from recents as end of session.
+        // Already logged out on pause, but ensure
         await logout();
         break;
     }
@@ -115,7 +109,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       final user = await _repo.getMe();
       if (user.role == AppStrings.roleAdmin) {
         await logout();
-        throw ApiException('Acceso denegado: los administradores solo pueden entrar al panel.');
+        throw ApiException('Acceso denegado.');
       }
       await SecureStorageService.saveUser(user.toJsonString());
       state = AsyncValue.data(user);

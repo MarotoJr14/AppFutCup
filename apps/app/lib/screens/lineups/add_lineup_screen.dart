@@ -39,12 +39,12 @@ class _AddLineupScreenState extends ConsumerState<AddLineupScreen> {
 
     final homeErr = validateTeam('Equipo local', _homeRoles);
     if (homeErr != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(homeErr), backgroundColor: AppColors.error));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(homeErr), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
       return;
     }
     final awayErr = validateTeam('Equipo visitante', _awayRoles);
     if (awayErr != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(awayErr), backgroundColor: AppColors.error));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(awayErr), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
       return;
     }
 
@@ -61,7 +61,7 @@ class _AddLineupScreenState extends ConsumerState<AddLineupScreen> {
       ref.invalidate(matchLineupsProvider(widget.matchId));
       if (mounted) context.pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
     }
   }
 

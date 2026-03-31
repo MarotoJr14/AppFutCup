@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_assets.dart';
 import '../../core/constants/app_strings.dart';
@@ -17,12 +18,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passCtrl  = TextEditingController();
   final _formKey   = GlobalKey<FormState>();
   bool _obscure    = true;
+  bool _remember   = false;
 
   @override
-  void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadSavedData();
+  }
+
+  Future<void> _loadSavedData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final remember = prefs.getBool('remember_login') ?? false;
+    if (remember) {
+      _emailCtrl.text = prefs.getString('saved_email') ?? '';
+      _passCtrl.text = prefs.getString('saved_password') ?? '';
+      _remember = true;
+      setState(() {});
+    }
+  }
+
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_remember) {
+      await prefs.setBool('remember_login', true);
+      await prefs.setString('saved_email', _emailCtrl.text.trim());
+      await prefs.setString('saved_password', _passCtrl.text);
+    } else {
+      await prefs.setBool('remember_login', false);
+      await prefs.remove('saved_email');
+      await prefs.remove('saved_password');
+    }
   }
 
   Future<void> _login() async {
@@ -33,9 +58,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
     final auth = ref.read(authProvider);
     auth.whenOrNull(
-      data: (user) { if (user != null) context.go('/home'); },
+      data: (user) {
+        if (user != null) {
+          _saveData();
+          context.go('/home');
+        }
+      },
       error: (e, _) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)),
       ),
     );
   }
@@ -82,6 +112,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         validator: (v) => v == null || v.isEmpty ? 'Campo requerido' : null,
+                      ),
+                      SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _remember,
+                            onChanged: (value) {
+                              setState(() {
+                                _remember = value ?? false;
+                              });
+                            },
+                            activeColor: AppColors.primary,
+                            checkColor: AppColors.onPrimary,
+                          ),
+                          Text(
+                            AppStrings.rememberMe,
+                            style: TextStyle(color: AppColors.onSurface),
+                          ),
+                        ],
                       ),
                       SizedBox(height: 28),
                       SizedBox(

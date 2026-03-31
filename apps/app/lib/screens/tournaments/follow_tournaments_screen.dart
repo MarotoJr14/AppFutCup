@@ -117,7 +117,7 @@ class _FollowTournamentsScreenState extends ConsumerState<FollowTournamentsScree
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(e.toString()),
-                                        backgroundColor: AppColors.error,
+                                        backgroundColor: AppColors.error, duration: const Duration(seconds: 3),
                                       ),
                                     );
                                   }

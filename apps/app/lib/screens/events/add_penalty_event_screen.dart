@@ -42,7 +42,7 @@ class _AddPenaltyEventScreenState extends ConsumerState<AddPenaltyEventScreen> {
   Future<void> _submit() async {
     if (_teamId == null || _playerId == null || _eventType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rellena todos los campos obligatorios'), backgroundColor: AppColors.error),
+        const SnackBar(content: Text('Rellena todos los campos obligatorios'), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)),
       );
       return;
     }
@@ -52,7 +52,7 @@ class _AddPenaltyEventScreenState extends ConsumerState<AddPenaltyEventScreen> {
     if (events == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cargando eventos del partido...'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Cargando eventos del partido...'), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)),
         );
       }
       return;
@@ -62,7 +62,7 @@ class _AddPenaltyEventScreenState extends ConsumerState<AddPenaltyEventScreen> {
     if (validationError != null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(validationError), backgroundColor: AppColors.error),
+          SnackBar(content: Text(validationError), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)),
         );
       }
       return;
@@ -82,7 +82,7 @@ class _AddPenaltyEventScreenState extends ConsumerState<AddPenaltyEventScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)),
         );
       }
     }

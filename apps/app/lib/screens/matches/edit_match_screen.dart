@@ -53,7 +53,7 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
       ref.invalidate(matchDetailProvider(widget.matchId));
       if (mounted) context.pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
     }
   }
 

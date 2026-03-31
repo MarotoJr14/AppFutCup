@@ -42,7 +42,7 @@ class _AddPlayerScreenState extends ConsumerState<AddPlayerScreen> {
     if (!_isValidDni(dni)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)),
         );
       }
       return;
@@ -51,20 +51,20 @@ class _AddPlayerScreenState extends ConsumerState<AddPlayerScreen> {
       final player = await PlayerRepository().searchByDni(dni);
       setState(() { _found = player; _searched = true; _notFound = player == null; });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
     }
   }
 
   Future<void> _submit() async {
     final number = int.tryParse(_numberCtrl.text);
     if (number == null || !_isValidNumber(number)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dorsal inválido (1-99)'), backgroundColor: AppColors.error));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dorsal inválido (1-99)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)));
       return;
     }
     final dni = _normalizeDni(_dniCtrl.text);
     _setDniText(dni);
     if (!_isValidDni(dni)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)));
       return;
     }
     try {
@@ -77,7 +77,7 @@ class _AddPlayerScreenState extends ConsumerState<AddPlayerScreen> {
       ref.invalidate(teamPlayersProvider(widget.teamId));
       if (mounted) context.pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
     }
   }
 

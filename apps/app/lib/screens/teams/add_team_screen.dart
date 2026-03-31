@@ -26,7 +26,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
       ref.invalidate(teamsProvider(widget.tournamentId));
       if (mounted) context.pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
     }
   }
 

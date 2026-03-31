@@ -1,3 +1,4 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
@@ -11,7 +12,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
 
     class Config:
-        env_file = ".env"
+        # Always resolve .env relative to the backend folder, not the process CWD.
+        env_file = str(Path(__file__).resolve().parents[2] / ".env")
 
 
 settings = Settings()
