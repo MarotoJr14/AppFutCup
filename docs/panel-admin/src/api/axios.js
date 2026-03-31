@@ -1,17 +1,6 @@
 import axios from 'axios'
 import { SESSION } from '../session/sessionConfig'
 
-const resolveApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL
-  if (envUrl) return envUrl
-
-  // Dev: backend usually runs separately on localhost:8000
-  if (import.meta.env.DEV) return 'http://localhost:8000/api/v1'
-
-  // Prod: prefer same-origin (works when served behind a reverse-proxy)
-  return `${window.location.origin}/api/v1`
-}
-
 const clearSession = () => {
   localStorage.removeItem(SESSION.tokenKey)
   localStorage.removeItem(SESSION.userKey)
@@ -23,7 +12,7 @@ const broadcastLogout = () => {
 }
 
 const api = axios.create({
-  baseURL: resolveApiBaseUrl(),
+  baseURL: 'https://futcup-backend.up.railway.app/api/v1',
   headers: { 'Content-Type': 'application/json' },
 })
 
