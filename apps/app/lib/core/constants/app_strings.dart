@@ -1,7 +1,7 @@
 class AppStrings {
   AppStrings._();
 
-  static const String appName           = 'FutCup 2026';
+  static const String appName           = 'FutCup App';
   static const String baseUrl           = 'https://futcup-backend.up.railway.app/api/v1';
   static const String tokenKey          = 'auth_token';
   static const String userKey           = 'auth_user';
