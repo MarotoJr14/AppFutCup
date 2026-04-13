@@ -18,18 +18,18 @@ const fmtDt = v => v ? new Date(v).toLocaleString('es-ES', { day:'2-digit', mont
 const COLUMNS = [
   { key: 'id',         label: 'ID' },
   { key: 'name',       label: 'Nombre' },
-  { key: 'dni',        label: 'DNI' },
+  { key: 'dni',        label: 'DNI / NIE' },
   { key: 'created_at', label: 'Creado',     render: fmtDt, csvRender: fmtDt },
   { key: 'updated_at', label: 'Modificado', render: fmtDt, csvRender: fmtDt },
 ]
 const EDIT_FIELDS = [
   { key: 'name', label: 'Nombre', required: true },
-  { key: 'dni',  label: 'DNI',    required: true },
+  { key: 'dni',  label: 'DNI / NIE',    required: true },
 ]
 const TEMPLATE_HEADERS = ['name', 'dni', 'number']
 
 const normalizeDni = (v) => (v ?? '').replace(/[^0-9a-zA-Z]/g, '').toUpperCase()
-const isValidDni = (v) => /^[0-9]{8}[A-Z]$/.test(v)
+const isValidDni = (v) => /^[XYZ0-9][0-9]{7}[A-Z]$/.test(v)
 const isValidNumber = (v) => Number.isInteger(v) && v >= 1 && v <= 99
 
 function CreatePlayerWizard({ teams, onClose, onSuccess, onToast }) {
@@ -51,7 +51,7 @@ function CreatePlayerWizard({ teams, onClose, onSuccess, onToast }) {
     const nd = normalizeDni(dni)
     setDni(nd)
     if (!nd) return
-    if (!isValidDni(nd)) { onToast('DNI inválido (ej: 12345678A)', 'error'); return }
+    if (!isValidDni(nd)) { onToast('Documento inválido (ej: 12345678A o X1234567A)', 'error'); return }
     setSearching(true)
     try {
       const res = await api.get(`/players/search-dni/${nd}`)
@@ -63,7 +63,7 @@ function CreatePlayerWizard({ teams, onClose, onSuccess, onToast }) {
   const handleSubmit = async () => {
     const nd = normalizeDni(dni)
     setDni(nd)
-    if (!isValidDni(nd)) { onToast('DNI inválido (ej: 12345678A)', 'error'); return }
+    if (!isValidDni(nd)) { onToast('Documento inválido (ej: 12345678A o X1234567A)', 'error'); return }
     if (!tournamentId) { onToast('Torneo es obligatorio', 'error'); return }
     const n = Number(number)
     if (!teamId || !number) { onToast('Equipo y dorsal son obligatorios', 'error'); return }
@@ -84,7 +84,7 @@ function CreatePlayerWizard({ teams, onClose, onSuccess, onToast }) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-hint text-sm mb-1 block">DNI del jugador <span className="text-error">*</span></label>
+        <label className="text-hint text-sm mb-1 block">DNI / NIE del jugador <span className="text-error">*</span></label>
         <div className="flex gap-2">
           <input type="text" value={dni} onChange={e => { setDni(normalizeDni(e.target.value)); setStep(1); setFound(null); setNotFound(false); setTournamentId(''); setTeamId(''); setNumber('') }} className="input-base flex-1" placeholder="12345678A" />
           <button onClick={handleSearch} disabled={!dni.trim() || searching} className="btn-primary whitespace-nowrap">{searching ? '...' : 'Buscar'}</button>

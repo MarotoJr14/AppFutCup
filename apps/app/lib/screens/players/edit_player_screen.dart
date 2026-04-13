@@ -34,7 +34,7 @@ class _EditPlayerScreenState extends ConsumerState<EditPlayerScreen> {
   bool _loaded = false;
 
   String _normalizeDni(String v) => v.trim().toUpperCase();
-  bool _isValidDni(String v) => RegExp(r'^[0-9]{8}[A-Z]$').hasMatch(v);
+  bool _isValidDni(String v) => RegExp(r'^[XYZ0-9][0-9]{7}[A-Z]$').hasMatch(v);
   bool _isValidNumber(int v) => v >= 1 && v <= 99;
 
   Future<void> _submit({required int ptId}) async {
@@ -52,7 +52,7 @@ class _EditPlayerScreenState extends ConsumerState<EditPlayerScreen> {
     _dniCtrl.value = TextEditingValue(text: dni, selection: TextSelection.collapsed(offset: dni.length));
     if (!_isValidDni(dni)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)),
+        const SnackBar(content: Text('Documento inválido (ej: 12345678A o X1234567A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)),
       );
       return;
     }
@@ -147,7 +147,7 @@ class _EditPlayerScreenState extends ConsumerState<EditPlayerScreen> {
               SizedBox(height: 14),
               _field(
                 _dniCtrl,
-                'DNI del jugador *',
+                'DNI / NIE del jugador *',
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9A-Za-z]')),
                   _UpperCaseTextFormatter(),
@@ -155,7 +155,7 @@ class _EditPlayerScreenState extends ConsumerState<EditPlayerScreen> {
                 validator: (v) {
                   final s = (v ?? '').trim().toUpperCase();
                   if (s.isEmpty) return 'Campo requerido';
-                  if (!RegExp(r'^[0-9]{8}[A-Z]$').hasMatch(s)) return 'DNI inválido (ej: 12345678A)';
+                  if (!RegExp(r'^[XYZ0-9][0-9]{7}[A-Z]$').hasMatch(s)) return 'Documento inválido (ej: 12345678A o X1234567A)';
                   return null;
                 },
               ),

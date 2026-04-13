@@ -25,7 +25,7 @@ class _AddPlayerScreenState extends ConsumerState<AddPlayerScreen> {
   bool _notFound = false;
 
   String _normalizeDni(String v) => v.trim().toUpperCase();
-  bool _isValidDni(String v) => RegExp(r'^[0-9]{8}[A-Z]$').hasMatch(v);
+  bool _isValidDni(String v) => RegExp(r'^[XYZ0-9][0-9]{7}[A-Z]$').hasMatch(v);
   bool _isValidNumber(int v) => v >= 1 && v <= 99;
 
   void _setDniText(String v) {
@@ -42,7 +42,7 @@ class _AddPlayerScreenState extends ConsumerState<AddPlayerScreen> {
     if (!_isValidDni(dni)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)),
+          const SnackBar(content: Text('Documento inválido (ej: 12345678A o X1234567A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)),
         );
       }
       return;
@@ -64,7 +64,7 @@ class _AddPlayerScreenState extends ConsumerState<AddPlayerScreen> {
     final dni = _normalizeDni(_dniCtrl.text);
     _setDniText(dni);
     if (!_isValidDni(dni)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('DNI inválido (ej: 12345678A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Documento inválido (ej: 12345678A o X1234567A)'), backgroundColor: AppColors.error, duration: Duration(seconds: 3)));
       return;
     }
     try {
@@ -95,7 +95,7 @@ class _AddPlayerScreenState extends ConsumerState<AddPlayerScreen> {
                 Expanded(
                   child: _field(
                     _dniCtrl,
-                    'DNI del jugador',
+                    'DNI / NIE del jugador',
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9A-Za-z]')),
                       _UpperCaseTextFormatter(),
