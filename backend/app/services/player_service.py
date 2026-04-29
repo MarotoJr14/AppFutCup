@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.repositories.player_repository import PlayerRepository
 from app.services.audit_log_service import AuditLogService
-from app.schemas.player_schema import PlayerCreate, PlayerUpdate
+from app.schemas.player_schema import PlayerCreate, PlayerUpdate, is_valid_dni, make_placeholder_dni
 from app.models.player import Player
 from app.models.enums import AuditEntity, AuditAction
 
@@ -12,13 +12,32 @@ class PlayerService:
         self.repo = PlayerRepository(db)
         self.audit = AuditLogService(db)
 
+    def _repair_invalid_dnis(self, players: list[Player]) -> None:
+        dirty = False
+        for player in players:
+            if player.id is None:
+                continue
+            if not is_valid_dni(player.dni):
+                player.dni = make_placeholder_dni(player.id)
+                dirty = True
+
+        if dirty:
+            try:
+                self.repo.db.commit()
+            except Exception:
+                self.repo.db.rollback()
+                raise
+
     def get_all(self, skip: int = 0, limit: int = 100) -> list[Player]:
-        return self.repo.get_all(skip, limit)
+        players = self.repo.get_all(skip, limit)
+        self._repair_invalid_dnis(players)
+        return players
 
     def get_by_id(self, player_id: int) -> Player:
         p = self.repo.get_by_id(player_id)
         if not p:
             raise HTTPException(status_code=404, detail="Jugador no encontrado")
+        self._repair_invalid_dnis([p])
         return p
 
     def get_by_dni(self, dni: str) -> Player | None:

@@ -6,6 +6,16 @@ from pydantic import BaseModel, field_validator
 _DNI_RE = re.compile(r"^[XYZ0-9][0-9]{7}[A-Za-z]$")
 
 
+def is_valid_dni(v: str) -> bool:
+    dni = (v or "").strip().upper()
+    return bool(_DNI_RE.fullmatch(dni))
+
+
+def make_placeholder_dni(player_id: int) -> str:
+    # Usa formato NIE para minimizar colisiones con DNIs reales.
+    return f"X{player_id % 10_000_000:07d}A"
+
+
 def _normalize_dni(v: str) -> str:
     dni = (v or "").strip().upper()
     if not _DNI_RE.fullmatch(dni):

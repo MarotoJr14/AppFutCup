@@ -73,8 +73,9 @@ def run():
     players = []
     for i in range(1, 81):  # 80 jugadores
         player = Player(
-            name=f"Player{i}",
-            dni=f"DNI{i:03d}",
+            name=f"Jugador {i}",
+            # DNI/NIE de ejemplo válido: X + 7 dígitos + letra
+            dni=f"X{i:07d}A",
         )
         players.append(player)
 
