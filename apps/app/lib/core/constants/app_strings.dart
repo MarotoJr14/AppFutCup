@@ -2,7 +2,7 @@ class AppStrings {
   AppStrings._();
 
   static const String appName           = 'FutCup App';
-  static const String baseUrl           = 'http://10.0.2.2:8000/api/v1';
+  static const String baseUrl           = 'http://192.168.22.234:8000/api/v1';
   static const String tokenKey          = 'auth_token';
   static const String userKey           = 'auth_user';
   static const String themeKey          = 'theme_mode';

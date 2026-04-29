@@ -317,7 +317,7 @@ class _MatchCard extends ConsumerWidget {
               ],
             ),
             SizedBox(height: 8),
-            TextButton(onPressed: () => context.push('/match/${match.id}'), style: TextButton.styleFrom(foregroundColor: AppColors.primary, padding: EdgeInsets.zero), child: Text('Ver ficha del partido →')),
+            TextButton(onPressed: () => context.push('/match/${match.id}'), style: TextButton.styleFrom(foregroundColor: AppColors.primary, padding: EdgeInsets.zero), child: Text('Ver ficha del partido')),
           ],
         ),
       ),
