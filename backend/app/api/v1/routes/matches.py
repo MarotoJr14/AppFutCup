@@ -12,7 +12,7 @@ router = APIRouter(prefix="/matches", tags=["Matches"])
 
 @router.get("/", response_model=list[MatchOut])
 def get_all(tournament_id: int | None = None, round: MatchRound | None = None,
-            skip: int = 0, limit: int = 100,
+            skip: int = 0, limit: int | None = None,
             db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     svc = MatchService(db)
     if tournament_id and round:

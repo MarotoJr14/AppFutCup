@@ -13,7 +13,7 @@ router = APIRouter(prefix="/audit-logs", tags=["Audit Logs"])
 @router.get("/", response_model=list[AuditLogOut])
 def get_all(
     skip: int = 0,
-    limit: int = 100,
+    limit: int | None = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
@@ -24,7 +24,7 @@ def get_all(
 def get_by_entity(
     entity: AuditEntity,
     skip: int = 0,
-    limit: int = 100,
+    limit: int | None = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
@@ -35,7 +35,7 @@ def get_by_entity(
 def get_by_user(
     user_id: int,
     skip: int = 0,
-    limit: int = 100,
+    limit: int | None = None,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):

@@ -23,8 +23,11 @@ class UserTournamentRepository:
     def get_by_tournament(self, tournament_id: int) -> list[UserTournament]:
         return self.db.query(UserTournament).filter(UserTournament.tournament_id == tournament_id).all()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[UserTournament]:
-        return self.db.query(UserTournament).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[UserTournament]:
+        query = self.db.query(UserTournament).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: UserTournamentCreate) -> UserTournament:
         ut = UserTournament(**data.model_dump())

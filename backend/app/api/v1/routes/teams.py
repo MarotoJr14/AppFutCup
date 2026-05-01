@@ -10,7 +10,7 @@ router = APIRouter(prefix="/teams", tags=["Teams"])
 
 
 @router.get("/", response_model=list[TeamOut])
-def get_all(tournament_id: int | None = None, skip: int = 0, limit: int = 100,
+def get_all(tournament_id: int | None = None, skip: int = 0, limit: int | None = None,
             db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     svc = TeamService(db)
     if tournament_id:

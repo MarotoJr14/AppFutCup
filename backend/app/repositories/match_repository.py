@@ -21,8 +21,11 @@ class MatchRepository:
             Match.round == round,
         ).all()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Match]:
-        return self.db.query(Match).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Match]:
+        query = self.db.query(Match).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: MatchCreate) -> Match:
         match = Match(**data.model_dump())

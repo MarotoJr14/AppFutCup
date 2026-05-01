@@ -29,6 +29,15 @@ class MatchService:
         }
         return order.get(round)
 
+    def _round_index(self, round: MatchRound) -> int:
+        order = {
+            MatchRound.RoundOf16: 0,
+            MatchRound.Quarterfinal: 1,
+            MatchRound.Semifinal: 2,
+            MatchRound.Final: 3,
+        }
+        return order[round]
+
     def _max_matches_for_round(self, round: MatchRound) -> int | None:
         limits = {
             MatchRound.RoundOf16: 8,
@@ -37,6 +46,150 @@ class MatchService:
             MatchRound.Final: 1,
         }
         return limits.get(round)
+
+    def _team_label(self, team_id: int) -> str:
+        team = self.team_repo.get_by_id(team_id)
+        return f"{team.name} (#{team_id})" if team else f"#{team_id}"
+
+    def _get_winner_loser_ids(self, match: Match) -> tuple[int | None, int | None]:
+        if match.status != MatchStatus.Finished:
+            return None, None
+        if match.team_home_id is None or match.team_away_id is None:
+            return None, None
+        if match.goals_home is None or match.goals_away is None:
+            return None, None
+
+        if match.goals_home > match.goals_away:
+            return match.team_home_id, match.team_away_id
+        if match.goals_away > match.goals_home:
+            return match.team_away_id, match.team_home_id
+
+        if match.pen_home is None or match.pen_away is None:
+            return None, None
+        if match.pen_home > match.pen_away:
+            return match.team_home_id, match.team_away_id
+        if match.pen_away > match.pen_home:
+            return match.team_away_id, match.team_home_id
+        return None, None
+
+    def _validate_unique_team_per_round(
+        self,
+        *,
+        tournament_id: int,
+        round: MatchRound,
+        team_home_id: int | None,
+        team_away_id: int | None,
+        exclude_match_id: int | None = None,
+    ) -> None:
+        if team_home_id is None and team_away_id is None:
+            return
+
+        used: dict[int, int] = {}
+        for m in self.repo.get_by_tournament_and_round(tournament_id, round):
+            if exclude_match_id is not None and m.id == exclude_match_id:
+                continue
+            if m.team_home_id is not None and m.team_home_id not in used:
+                used[m.team_home_id] = m.id
+            if m.team_away_id is not None and m.team_away_id not in used:
+                used[m.team_away_id] = m.id
+
+        for team_id in (team_home_id, team_away_id):
+            if team_id is None:
+                continue
+            if team_id in used:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"El equipo {self._team_label(team_id)} ya está asignado al partido "
+                        f"#{used[team_id]} en la ronda {round.value}"
+                    ),
+                )
+
+    def _validate_not_eliminated_in_previous_rounds(
+        self,
+        *,
+        tournament_id: int,
+        round: MatchRound,
+        team_home_id: int | None,
+        team_away_id: int | None,
+        exclude_match_id: int | None = None,
+    ) -> None:
+        target_idx = self._round_index(round)
+        if target_idx <= 0:
+            return
+
+        eliminated: dict[int, tuple[MatchRound, int]] = {}
+        for m in self.repo.get_by_tournament(tournament_id):
+            if exclude_match_id is not None and m.id == exclude_match_id:
+                continue
+            if self._round_index(m.round) >= target_idx:
+                continue
+            _, loser_id = self._get_winner_loser_ids(m)
+            if loser_id is None:
+                continue
+            eliminated.setdefault(loser_id, (m.round, m.id))
+
+        for team_id in (team_home_id, team_away_id):
+            if team_id is None:
+                continue
+            if team_id in eliminated:
+                lost_round, lost_match_id = eliminated[team_id]
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"El equipo {self._team_label(team_id)} fue eliminado en {lost_round.value} "
+                        f"(partido #{lost_match_id}) y no puede jugar en rondas posteriores"
+                    ),
+                )
+
+    def _validate_finishing_does_not_conflict_with_future_matches(
+        self,
+        *,
+        match: Match,
+        new_round: MatchRound,
+        new_status: MatchStatus,
+        team_home_id: int | None,
+        team_away_id: int | None,
+    ) -> None:
+        if new_status != MatchStatus.Finished:
+            return
+
+        if team_home_id is None or team_away_id is None:
+            return
+        if match.goals_home is None or match.goals_away is None:
+            return
+
+        # Determine loser from current score (goals/penalties updated by events)
+        loser_id: int | None = None
+        if match.goals_home > match.goals_away:
+            loser_id = team_away_id
+        elif match.goals_away > match.goals_home:
+            loser_id = team_home_id
+        else:
+            if match.pen_home is None or match.pen_away is None:
+                return
+            if match.pen_home > match.pen_away:
+                loser_id = team_away_id
+            elif match.pen_away > match.pen_home:
+                loser_id = team_home_id
+
+        if loser_id is None:
+            return
+
+        curr_idx = self._round_index(new_round)
+        for m in self.repo.get_by_tournament(match.tournament_id):
+            if m.id == match.id:
+                continue
+            if self._round_index(m.round) <= curr_idx:
+                continue
+            if m.team_home_id == loser_id or m.team_away_id == loser_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"No se puede finalizar el partido: el equipo {self._team_label(loser_id)} "
+                        f"ya está asignado al partido #{m.id} en la ronda {m.round.value}"
+                    ),
+                )
 
     def _validate_round_dependencies(self, tournament_id: int, round: MatchRound) -> None:
         """
@@ -68,7 +221,7 @@ class MatchService:
             raise HTTPException(status_code=404, detail="Torneo no encontrado")
         return t
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Match]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Match]:
         return self.repo.get_all(skip, limit)
 
     def get_by_id(self, match_id: int) -> Match:
@@ -125,13 +278,27 @@ class MatchService:
                         detail=f"No se pueden crear más de {limit} partidos en la ronda {new_round.value}",
                     )
 
-        # Finished matches are immutable
-        if match.status == MatchStatus.Finished and update_data:
-            raise HTTPException(status_code=400, detail="No se puede modificar un partido finalizado")
+        # Permitir modificar la informaciÃ³n general del partido en cualquier estado (panel admin)
+        # Si un atributo ya estÃ¡ relleno, no permitir vaciarlo (solo modificarlo).
+        if "team_home_id" in update_data and update_data["team_home_id"] is None and match.team_home_id is not None:
+            raise HTTPException(status_code=400, detail="El equipo local no se puede vaciar")
+        if "team_away_id" in update_data and update_data["team_away_id"] is None and match.team_away_id is not None:
+            raise HTTPException(status_code=400, detail="El equipo visitante no se puede vaciar")
+        if "datetime" in update_data and update_data["datetime"] is None and match.datetime is not None:
+            raise HTTPException(status_code=400, detail="La fecha y hora no se puede vaciar")
+        if "field" in update_data:
+            field_value = update_data["field"]
+            if (field_value is None or (isinstance(field_value, str) and not field_value.strip())) and match.field is not None:
+                raise HTTPException(status_code=400, detail="El campo no se puede vaciar")
+
+        if "status" in update_data and update_data["status"] is None:
+            update_data.pop("status", None)
+        if match.status == MatchStatus.Finished and "status" in update_data and update_data["status"] != MatchStatus.Finished:
+            raise HTTPException(status_code=400, detail="No se puede cambiar el estado de un partido finalizado")
 
         # When match is Playing, only allow changing status (to Penalties or Finished)
         if match.status == MatchStatus.Playing:
-            extra_keys = set(update_data.keys()) - {"status"}
+            extra_keys = set()  # permitir editar informaciÃ³n general en cualquier estado
             if extra_keys:
                 raise HTTPException(status_code=400, detail="No se puede modificar la información del partido en juego")
             if "status" in update_data and update_data["status"] == MatchStatus.Playing:
@@ -145,7 +312,7 @@ class MatchService:
 
         # When match is Penalties, only allow changing status to Finished
         if match.status == MatchStatus.Penalties:
-            extra_keys = set(update_data.keys()) - {"status"}
+            extra_keys = set()  # permitir editar informaciÃ³n general en cualquier estado
             if extra_keys:
                 raise HTTPException(status_code=400, detail="No se puede modificar la información del partido durante los penaltis")
             if "status" in update_data and update_data["status"] == MatchStatus.Penalties:
@@ -168,23 +335,12 @@ class MatchService:
             raise HTTPException(status_code=400, detail="Los penaltis se actualizan automáticamente por eventos")
 
         if "team_home_id" in update_data:
-            if match.team_home_id is not None:
-                # Once set, can't change or clear
-                if update_data["team_home_id"] != match.team_home_id:
-                    raise HTTPException(status_code=400, detail="No se puede modificar el equipo local una vez asignado")
-            else:
-                if update_data["team_home_id"] is None:
-                    raise HTTPException(status_code=400, detail="El equipo local no puede ser nulo")
+            if update_data["team_home_id"] is not None:
                 team = self.team_repo.get_by_id(update_data["team_home_id"])
                 if not team or team.tournament_id != match.tournament_id:
                     raise HTTPException(status_code=400, detail="El equipo local no pertenece al torneo del partido")
         if "team_away_id" in update_data:
-            if match.team_away_id is not None:
-                if update_data["team_away_id"] != match.team_away_id:
-                    raise HTTPException(status_code=400, detail="No se puede modificar el equipo visitante una vez asignado")
-            else:
-                if update_data["team_away_id"] is None:
-                    raise HTTPException(status_code=400, detail="El equipo visitante no puede ser nulo")
+            if update_data["team_away_id"] is not None:
                 team = self.team_repo.get_by_id(update_data["team_away_id"])
                 if not team or team.tournament_id != match.tournament_id:
                     raise HTTPException(status_code=400, detail="El equipo visitante no pertenece al torneo del partido")
@@ -193,6 +349,24 @@ class MatchService:
         away_id = update_data.get("team_away_id", match.team_away_id)
         if home_id is not None and away_id is not None and home_id == away_id:
             raise HTTPException(status_code=400, detail="Equipo local y visitante no pueden ser el mismo")
+
+        next_round: MatchRound = update_data.get("round", match.round)
+
+        if any(k in update_data for k in ("team_home_id", "team_away_id", "round")):
+            self._validate_unique_team_per_round(
+                tournament_id=match.tournament_id,
+                round=next_round,
+                team_home_id=home_id,
+                team_away_id=away_id,
+                exclude_match_id=match.id,
+            )
+            self._validate_not_eliminated_in_previous_rounds(
+                tournament_id=match.tournament_id,
+                round=next_round,
+                team_home_id=home_id,
+                team_away_id=away_id,
+                exclude_match_id=match.id,
+            )
 
         # Status transitions: Pending can only move to Playing (not directly to Finished)
         if "status" in update_data and match.status == MatchStatus.Pending and update_data["status"] == MatchStatus.Finished:
@@ -240,6 +414,15 @@ class MatchService:
             match.goals_away = 0
             match.pen_home = None
             match.pen_away = None
+
+        if "status" in update_data and update_data["status"] == MatchStatus.Finished:
+            self._validate_finishing_does_not_conflict_with_future_matches(
+                match=match,
+                new_round=next_round,
+                new_status=MatchStatus.Finished,
+                team_home_id=home_id,
+                team_away_id=away_id,
+            )
 
         # If status is moved to Penalties, initialize penalties score if needed
         if "status" in update_data and update_data["status"] == MatchStatus.Penalties and match.status != MatchStatus.Penalties:

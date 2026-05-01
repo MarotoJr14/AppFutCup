@@ -68,6 +68,9 @@ object DataReader {
             )
         }
 
+        validarEquiposUnicosPorRonda(partidos)
+        validarEliminadosNoAparecenEnRondasPosteriores(partidos)
+
         // Goleadores
         val goleadoresJson = root.getJSONArray("goleadores")
         val goleadores = (0 until goleadoresJson.length()).map {
@@ -80,5 +83,87 @@ object DataReader {
         }
 
         return TorneoData(torneo, equipos, partidos, goleadores)
+    }
+
+    private fun validarEquiposUnicosPorRonda(partidos: List<Partido>) {
+        val errores = mutableListOf<String>()
+        val byRound = partidos.groupBy { it.ronda.trim() }
+
+        for ((round, matches) in byRound) {
+            val firstSeenInMatchId = mutableMapOf<String, Int>()
+
+            for (m in matches) {
+                val home = m.equipo_local.trim()
+                val away = m.equipo_visitante.trim()
+
+                if (home.isNotEmpty() && away.isNotEmpty() && home == away) {
+                    errores.add("Partido #${m.id}: el equipo \"$home\" no puede jugar contra sí mismo en \"$round\".")
+                }
+
+                listOf(home to "local", away to "visitante")
+                    .filter { it.first.isNotEmpty() }
+                    .forEach { (team, side) ->
+                        val firstId = firstSeenInMatchId[team]
+                        if (firstId == null) {
+                            firstSeenInMatchId[team] = m.id
+                        } else if (firstId != m.id) {
+                            errores.add("Ronda \"$round\": el equipo \"$team\" aparece en más de un partido (p.ej. #$firstId y #${m.id}).")
+                        }
+                    }
+            }
+        }
+
+        if (errores.isNotEmpty()) {
+            throw IllegalStateException(
+                "Datos del torneo inválidos: un equipo no puede estar en 2 partidos de la misma ronda. " +
+                    errores.distinct().joinToString(" ")
+            )
+        }
+    }
+
+    private fun validarEliminadosNoAparecenEnRondasPosteriores(partidos: List<Partido>) {
+        fun roundIndex(r: String): Int? = when (r.trim()) {
+            "1/8 de Final" -> 0
+            "1/4 de Final" -> 1
+            "Semifinal" -> 2
+            "Final" -> 3
+            else -> null
+        }
+
+        val eliminated = mutableMapOf<String, Pair<String, Int>>() // teamName -> (roundName, matchId)
+
+        partidos.forEach { m ->
+            val idx = roundIndex(m.ronda) ?: return@forEach
+            val winner = m.getGanador() ?: return@forEach
+            val home = m.equipo_local.trim()
+            val away = m.equipo_visitante.trim()
+            val loser = when (winner) {
+                home -> away
+                away -> home
+                else -> null
+            } ?: return@forEach
+            if (loser.isNotEmpty()) eliminated.putIfAbsent(loser, m.ronda to m.id)
+        }
+
+        val errores = mutableListOf<String>()
+        partidos.forEach { m ->
+            val idx = roundIndex(m.ronda) ?: return@forEach
+            listOf(m.equipo_local.trim(), m.equipo_visitante.trim())
+                .filter { it.isNotEmpty() }
+                .forEach { team ->
+                    val lost = eliminated[team] ?: return@forEach
+                    val lostIdx = roundIndex(lost.first) ?: return@forEach
+                    if (lostIdx < idx) {
+                        errores.add("El equipo \"$team\" fue eliminado en \"${lost.first}\" (partido #${lost.second}) y no puede aparecer en \"${m.ronda}\" (partido #${m.id}).")
+                    }
+                }
+        }
+
+        if (errores.isNotEmpty()) {
+            throw IllegalStateException(
+                "Datos del torneo invÃ¡lidos: un equipo eliminado no puede jugar rondas posteriores. " +
+                    errores.distinct().joinToString(" ")
+            )
+        }
     }
 }

@@ -29,7 +29,7 @@ class PlayerTeamService:
             raise HTTPException(status_code=404, detail="Torneo no encontrado")
         require_active_tournament(tournament)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[PlayerTeam]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[PlayerTeam]:
         return self.repo.get_all(skip, limit)
 
     def get_by_id(self, pt_id: int) -> PlayerTeam:

@@ -10,7 +10,7 @@ router = APIRouter(prefix="/user-tournaments", tags=["User Tournaments"])
 
 
 @router.get("/", response_model=list[UserTournamentOut])
-def get_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def get_all(skip: int = 0, limit: int | None = None, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return UserTournamentService(db).get_all(skip, limit)
 
 

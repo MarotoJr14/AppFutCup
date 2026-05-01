@@ -59,6 +59,13 @@ function MatchForm({ initial = {}, teams, tournaments, onSubmit, onCancel, onToa
     if (!form.tournament_id) errs.tournament_id = 'Campo requerido'
     if (!form.round)         errs.round         = 'Campo requerido'
     if (!hideStatus && !form.status) errs.status = 'Campo requerido'
+
+    // Solo en el panel de administraciÃ³n: si un atributo ya estÃ¡ relleno, no permitir vaciarlo (pero sÃ­ modificarlo)
+    if (isEdit && initial.team_home_id != null && String(form.team_home_id) === '') errs.team_home_id = 'No se puede vaciar'
+    if (isEdit && initial.team_away_id != null && String(form.team_away_id) === '') errs.team_away_id = 'No se puede vaciar'
+    if (isEdit && initial.datetime && String(form.datetime) === '') errs.datetime = 'No se puede vaciar'
+    if (isEdit && initial.field && String(form.field).trim() === '') errs.field = 'No se puede vaciar'
+
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -85,11 +92,11 @@ function MatchForm({ initial = {}, teams, tournaments, onSubmit, onCancel, onToa
     }
   }
 
-  const sel = (label, key, options, required = false, disabled = false) => (
+  const sel = (label, key, options, required = false, disabled = false, allowEmpty = true) => (
     <div>
       <label className="text-sm text-hint mb-1 block">{label}{required && <span className="text-error ml-1">*</span>}</label>
       <select value={form[key]} onChange={e => set(key, e.target.value)} disabled={disabled} className="input-base bg-surface-alt">
-        <option value="">— Selecciona —</option>
+        {allowEmpty && <option value="">— Selecciona —</option>}
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
       {errors[key] && <p className="text-error text-xs mt-1">{errors[key]}</p>}
@@ -101,6 +108,7 @@ function MatchForm({ initial = {}, teams, tournaments, onSubmit, onCancel, onToa
       <label className="text-sm text-hint mb-1 block">{label}</label>
       <input type={type} value={form[key]} onChange={e => set(key, e.target.value)} disabled={disabled}
         className="input-base" placeholder={placeholder} />
+      {errors[key] && <p className="text-error text-xs mt-1">{errors[key]}</p>}
     </div>
   )
 
@@ -122,11 +130,12 @@ function MatchForm({ initial = {}, teams, tournaments, onSubmit, onCancel, onToa
       {sel('Torneo', 'tournament_id', tournaments.map(t => ({ value: t.id, label: t.name })), true, isEdit || lockInfo)}
       {sel('Ronda', 'round', ROUNDS.map(r => ({ value: r, label: ROUND_LABELS[r] })), true, lockInfo)}
       {!hideStatus && sel('Estado', 'status', statusOptions, true, isFinished)}
-      {sel('Equipo local', 'team_home_id', tournamentTeams.map(t => ({ value: t.id, label: t.name })), false, lockInfo || initial.team_home_id != null || !form.tournament_id)}
-      {sel('Equipo visitante', 'team_away_id', tournamentTeams.map(t => ({ value: t.id, label: t.name })), false, lockInfo || initial.team_away_id != null || !form.tournament_id)}
+      {sel('Equipo local', 'team_home_id', tournamentTeams.map(t => ({ value: t.id, label: t.name })), false, lockInfo || !form.tournament_id, isEdit ? initial.team_home_id == null : true)}
+      {sel('Equipo visitante', 'team_away_id', tournamentTeams.map(t => ({ value: t.id, label: t.name })), false, lockInfo || !form.tournament_id, isEdit ? initial.team_away_id == null : true)}
       <div>
         <label className="text-sm text-hint mb-1 block">Fecha y hora</label>
         <input type="datetime-local" value={form.datetime} onChange={e => set('datetime', e.target.value)} disabled={lockInfo} className="input-base" />
+        {errors.datetime && <p className="text-error text-xs mt-1">{errors.datetime}</p>}
       </div>
       {inp('Campo', 'field', 'text', 'Ej: Campo 1', lockInfo)}
       <div className="flex gap-3 justify-end pt-2">
@@ -158,6 +167,78 @@ export default function MatchesTable() {
   const tName    = id => tournaments.find(t => t.id === id)?.name  ?? `#${id}`
   const teamName = id => teams.find(t => t.id === id)?.name ?? (id ? `#${id}` : '—')
 
+  const roundName = r => ROUND_LABELS[r] ?? r
+
+  const loserTeamId = (m) => {
+    if (m.status !== 'Finished') return null
+    if (m.team_home_id == null || m.team_away_id == null) return null
+    if (m.goals_home == null || m.goals_away == null) return null
+
+    if (Number(m.goals_home) > Number(m.goals_away)) return m.team_away_id
+    if (Number(m.goals_away) > Number(m.goals_home)) return m.team_home_id
+
+    if (m.pen_home == null || m.pen_away == null) return null
+    if (Number(m.pen_home) > Number(m.pen_away)) return m.team_away_id
+    if (Number(m.pen_away) > Number(m.pen_home)) return m.team_home_id
+    const targetIdx = ROUNDS.indexOf(round)
+    if (targetIdx > 0 && (home != null || away != null)) {
+      const eliminated = new Map() // teamId -> { round, matchId, roundIdx }
+      items
+        .filter(m =>
+          m.tournament_id === tournamentId &&
+          (excludeMatchId == null || m.id !== excludeMatchId)
+        )
+        .forEach(m => {
+          const rIdx = ROUNDS.indexOf(m.round)
+          if (rIdx < 0 || rIdx >= targetIdx) return
+          const loserId = loserTeamId(m)
+          if (loserId == null || eliminated.has(loserId)) return
+          eliminated.set(loserId, { round: m.round, matchId: m.id, roundIdx: rIdx })
+        })
+
+      if (home != null && eliminated.has(home)) {
+        const info = eliminated.get(home)
+        return `El equipo "${teamName(home)}" fue eliminado en ${roundName(info.round)} (partido #${info.matchId}) y no puede jugar en rondas posteriores.`
+      }
+      if (away != null && eliminated.has(away)) {
+        const info = eliminated.get(away)
+        return `El equipo "${teamName(away)}" fue eliminado en ${roundName(info.round)} (partido #${info.matchId}) y no puede jugar en rondas posteriores.`
+      }
+    }
+    return null
+  }
+
+  const validarEquipoUnicoPorRonda = ({ tournamentId, round, homeId, awayId, excludeMatchId = null }) => {
+    if (!tournamentId || !round) return null
+
+    const home = (homeId === undefined ? null : homeId)
+    const away = (awayId === undefined ? null : awayId)
+
+    if (home != null && away != null && home === away) {
+      return 'Un equipo no puede estar como local y visitante en el mismo partido.'
+    }
+
+    const used = new Map() // teamId -> matchId
+    items
+      .filter(m =>
+        m.tournament_id === tournamentId &&
+        m.round === round &&
+        (excludeMatchId == null || m.id !== excludeMatchId)
+      )
+      .forEach(m => {
+        if (m.team_home_id != null && !used.has(m.team_home_id)) used.set(m.team_home_id, m.id)
+        if (m.team_away_id != null && !used.has(m.team_away_id)) used.set(m.team_away_id, m.id)
+      })
+
+    if (home != null && used.has(home)) {
+      return `El equipo "${teamName(home)}" ya está asignado al partido #${used.get(home)} en ${roundName(round)}.`
+    }
+    if (away != null && used.has(away)) {
+      return `El equipo "${teamName(away)}" ya está asignado al partido #${used.get(away)} en ${roundName(round)}.`
+    }
+    return null
+  }
+
   const filtered = items
     .filter(m => !tournamentFilter || String(m.tournament_id) === tournamentFilter)
     .filter(m => !roundFilter      || m.round === roundFilter)
@@ -185,10 +266,32 @@ export default function MatchesTable() {
         return
       }
     }
+    const conflictMsg = validarEquipoUnicoPorRonda({
+      tournamentId: data.tournament_id,
+      round: data.round,
+      homeId: data.team_home_id,
+      awayId: data.team_away_id,
+    })
+    if (conflictMsg) { showToast(conflictMsg, 'error'); return }
     try { await create(data); setModal(null); showToast('Partido creado') }
     catch (e) { showToast(e.response?.data?.detail || 'Error', 'error') }
   }
   const handleEdit = async (data) => {
+    const next = {
+      tournament_id: selected.tournament_id,
+      round: selected.round,
+      team_home_id: selected.team_home_id,
+      team_away_id: selected.team_away_id,
+      ...data,
+    }
+    const conflictMsg = validarEquipoUnicoPorRonda({
+      tournamentId: next.tournament_id,
+      round: next.round,
+      homeId: next.team_home_id,
+      awayId: next.team_away_id,
+      excludeMatchId: selected.id,
+    })
+    if (conflictMsg) { showToast(conflictMsg, 'error'); return }
     try { await update(selected.id, data); setModal(null); showToast('Partido actualizado') }
     catch (e) { showToast(e.response?.data?.detail || 'Error', 'error') }
   }
@@ -199,9 +302,27 @@ export default function MatchesTable() {
   const handleImport = async (file, format, context) => {
     const tournamentId = Number(context.tournament_id)
     const roundCounts = {}
+    const roundTeamsUsed = {}
+    const eliminated = new Map() // teamId -> { round, matchId, roundIdx }
+    const addUsed = (round, teamId) => {
+      if (!round) return
+      if (teamId == null) return
+      if (!roundTeamsUsed[round]) roundTeamsUsed[round] = new Set()
+      roundTeamsUsed[round].add(teamId)
+    }
     items
       .filter(m => m.tournament_id === tournamentId)
-      .forEach(m => { roundCounts[m.round] = (roundCounts[m.round] || 0) + 1 })
+      .forEach(m => {
+        roundCounts[m.round] = (roundCounts[m.round] || 0) + 1
+        addUsed(m.round, m.team_home_id)
+        addUsed(m.round, m.team_away_id)
+
+        const rIdx = ROUNDS.indexOf(m.round)
+        const loserId = loserTeamId(m)
+        if (rIdx >= 0 && loserId != null && !eliminated.has(loserId)) {
+          eliminated.set(loserId, { round: m.round, matchId: m.id, roundIdx: rIdx })
+        }
+      })
 
     return await importData(file, format, async (row) => {
       const limit = ROUND_LIMITS[row.round]
@@ -214,12 +335,38 @@ export default function MatchesTable() {
       }
       const homeTeam = teams.find(t => t.name === row.team_home_name && String(t.tournament_id) === String(context.tournament_id))
       const awayTeam = teams.find(t => t.name === row.team_away_name && String(t.tournament_id) === String(context.tournament_id))
+      const homeId = homeTeam?.id
+      const awayId = awayTeam?.id
+
+      const usedSet = roundTeamsUsed[row.round] || new Set()
+      const targetIdx = ROUNDS.indexOf(row.round)
+      if (homeId != null && awayId != null && homeId === awayId) {
+        throw new Error(`Un equipo no puede estar como local y visitante en el mismo partido (${roundName(row.round)}).`)
+      }
+      if (homeId != null && usedSet.has(homeId)) {
+        throw new Error(`El equipo "${teamName(homeId)}" ya tiene un partido en ${roundName(row.round)} (mismo torneo).`)
+      }
+      if (awayId != null && usedSet.has(awayId)) {
+        throw new Error(`El equipo "${teamName(awayId)}" ya tiene un partido en ${roundName(row.round)} (mismo torneo).`)
+      }
+      if (targetIdx > 0) {
+        if (homeId != null && eliminated.has(homeId) && eliminated.get(homeId).roundIdx < targetIdx) {
+          const info = eliminated.get(homeId)
+          throw new Error(`El equipo "${teamName(homeId)}" fue eliminado en ${roundName(info.round)} (partido #${info.matchId}) y no puede jugar en rondas posteriores.`)
+        }
+        if (awayId != null && eliminated.has(awayId) && eliminated.get(awayId).roundIdx < targetIdx) {
+          const info = eliminated.get(awayId)
+          throw new Error(`El equipo "${teamName(awayId)}" fue eliminado en ${roundName(info.round)} (partido #${info.matchId}) y no puede jugar en rondas posteriores.`)
+        }
+      }
       await api.post('/matches', {
         tournament_id: tournamentId,
         round: row.round,
         datetime: row.datetime || undefined, field: row.field || undefined,
-        team_home_id: homeTeam?.id, team_away_id: awayTeam?.id,
+        team_home_id: homeId, team_away_id: awayId,
       })
+      addUsed(row.round, homeId)
+      addUsed(row.round, awayId)
     })
   }
 
@@ -684,9 +831,7 @@ function MatchLineups({ matchId, matchStatus, homeTeamId, awayTeamId, teams, onT
                     {l.role === 'Starter' ? 'Titular' : 'Suplente'}
                   </span>
                   <span className="text-white text-sm flex-1">{playerName(l.player_id)}</span>
-                  {canAdd && (
-                    <button onClick={() => handleDelete(l.id)} className="text-error text-xs hover:underline">Borrar</button>
-                  )}
+                  <button onClick={() => handleDelete(l.id)} className="text-error text-xs hover:underline">Borrar</button>
                 </div>
               ))
           }

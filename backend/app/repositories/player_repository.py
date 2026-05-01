@@ -14,8 +14,11 @@ class PlayerRepository:
     def get_by_dni(self, dni: str) -> Optional[Player]:
         return self.db.query(Player).filter(Player.dni == dni).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Player]:
-        return self.db.query(Player).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Player]:
+        query = self.db.query(Player).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: PlayerCreate) -> Player:
         player = Player(**data.model_dump())

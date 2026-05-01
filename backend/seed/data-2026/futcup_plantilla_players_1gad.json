@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Sergio Fernández López",
+    "dni": "00000123A",
+    "number": "1"
+  },
+  {
+    "name": "Alonso González López",
+    "dni": "00000124A",
+    "number": "2"
+  },
+  {
+    "name": "Jaime Trenado Málaga",
+    "dni": "00000125A",
+    "number": "3"
+  },
+  {
+    "name": "Jaime Muguruza Lara",
+    "dni": "00000126A",
+    "number": "4"
+  },
+  {
+    "name": "Román Zarovnyi",
+    "dni": "00000127A",
+    "number": "5"
+  },
+  {
+    "name": "Álvaro Burgo Frisa",
+    "dni": "00000128A",
+    "number": "6"
+  },
+  {
+    "name": "Javier Verderas Yagüez",
+    "dni": "00000129A",
+    "number": "7"
+  },
+  {
+    "name": "Alfonso Iza Sastre",
+    "dni": "00000130A",
+    "number": "8"
+  },
+  {
+    "name": "Gabriel Morales Socorro",
+    "dni": "00000131A",
+    "number": "9"
+  },
+  {
+    "name": "Ignacio Asuar Pérez",
+    "dni": "00000132A",
+    "number": "10"
+  }
+]

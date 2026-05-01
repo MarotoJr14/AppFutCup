@@ -26,7 +26,7 @@ def top_scorers(tournament_id: int, limit: int = 20,
 
 
 @router.get("/", response_model=list[EventOut])
-def get_all(match_id: int | None = None, skip: int = 0, limit: int = 100,
+def get_all(match_id: int | None = None, skip: int = 0, limit: int | None = None,
             db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     svc = EventService(db)
     if match_id:

@@ -27,7 +27,7 @@ class EventService:
             raise HTTPException(status_code=404, detail="Torneo no encontrado")
         require_active_tournament(tournament)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Event]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Event]:
         return self.repo.get_all(skip, limit)
 
     def get_by_id(self, event_id: int) -> Event:
@@ -107,5 +107,31 @@ class EventService:
 
     def delete(self, event_id: int, actor_id: int) -> None:
         event = self.get_by_id(event_id)
-        self.repo.delete(event)
+
+        match = self.match_repo.get_by_id(event.match_id)
+        if not match:
+            raise HTTPException(status_code=404, detail="Partido no encontrado")
+
+        # Si el evento afecta al marcador, revertir su impacto al eliminarlo
+        if event.event_type in (EventType.Goal, EventType.Owngoal):
+            goals_home = match.goals_home or 0
+            goals_away = match.goals_away or 0
+
+            if event.event_type == EventType.Goal:
+                if event.team_id == match.team_home_id:
+                    goals_home = max(0, goals_home - 1)
+                else:
+                    goals_away = max(0, goals_away - 1)
+            else:  # Owngoal
+                if event.team_id == match.team_home_id:
+                    goals_away = max(0, goals_away - 1)
+                else:
+                    goals_home = max(0, goals_home - 1)
+
+            match.goals_home = goals_home
+            match.goals_away = goals_away
+
+        self.db.delete(event)
+        self.db.commit()
+
         self.audit.log(AuditEntity.Event, AuditAction.Delete, actor_id, f"event_id={event_id}")

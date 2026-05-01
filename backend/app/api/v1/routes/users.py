@@ -21,7 +21,7 @@ def update_me(data: UserUpdate, db: Session = Depends(get_db), current_user: Use
 
 
 @router.get("/", response_model=list[UserOut])
-def get_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def get_all(skip: int = 0, limit: int | None = None, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return UserService(db).get_all(skip, limit)
 
 

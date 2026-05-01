@@ -18,8 +18,11 @@ class UserRepository:
     def get_by_username(self, username: str) -> Optional[User]:
         return self.db.query(User).filter(User.username == username).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
-        return self.db.query(User).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[User]:
+        query = self.db.query(User).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: UserCreate) -> User:
         user = User(

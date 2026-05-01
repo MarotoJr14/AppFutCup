@@ -88,11 +88,20 @@ export default function ImportModal({ title, templateHeaders, contextFields = []
                   <label className="text-hint text-xs mb-1 block">{f.label} *</label>
                   <select
                     value={context[f.key] || ''}
-                    onChange={e => setContext(c => ({ ...c, [f.key]: e.target.value }))}
+                    onChange={e => setContext(c => {
+                      const value = e.target.value
+                      const next = { ...c, [f.key]: value }
+                      if (Array.isArray(f.resets) && value !== (c[f.key] || '')) {
+                        for (const k of f.resets) next[k] = ''
+                      }
+                      return next
+                    })}
                     className="input-base bg-bg"
+                    disabled={typeof f.disabled === 'function' ? f.disabled(context) : Boolean(f.disabled)}
                   >
                     <option value="">— Selecciona —</option>
-                    {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {(typeof f.options === 'function' ? f.options(context) : f.options)
+                      .map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               ))}

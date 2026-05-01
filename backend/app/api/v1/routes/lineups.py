@@ -10,7 +10,7 @@ router = APIRouter(prefix="/lineups", tags=["Lineups"])
 
 
 @router.get("/", response_model=list[LineupOut])
-def get_all(match_id: int | None = None, skip: int = 0, limit: int = 100,
+def get_all(match_id: int | None = None, skip: int = 0, limit: int | None = None,
             db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     svc = LineupService(db)
     if match_id:

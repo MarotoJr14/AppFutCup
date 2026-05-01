@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Aitor Montalvo López",
+    "dni": "00000000A",
+    "number": "1"
+  },
+  {
+    "name": "Miguel Suárez Díaz",
+    "dni": "00000001A",
+    "number": "2"
+  },
+  {
+    "name": "Javier Vega Martín",
+    "dni": "00000002A",
+    "number": "3"
+  },
+  {
+    "name": "Víctor Palomino Jiménez",
+    "dni": "00000003A",
+    "number": "4"
+  },
+  {
+    "name": "Lucas Sacristán García",
+    "dni": "00000004A",
+    "number": "5"
+  },
+  {
+    "name": "Víctor Lombardía López",
+    "dni": "00000005A",
+    "number": "6"
+  },
+  {
+    "name": "Luis Gil Castro",
+    "dni": "00000006A",
+    "number": "7"
+  },
+  {
+    "name": "Cristian Lorca Flores",
+    "dni": "00000007A",
+    "number": "8"
+  },
+  {
+    "name": "Tomás Macgowan",
+    "dni": "00000008A",
+    "number": "9"
+  },
+  {
+    "name": "Mark Díaz Braojos",
+    "dni": "00000009A",
+    "number": "10"
+  },
+  {
+    "name": "Adrián Soto Badino",
+    "dni": "00000010A",
+    "number": "11"
+  }
+]

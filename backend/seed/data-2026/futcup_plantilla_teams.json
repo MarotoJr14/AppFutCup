@@ -1,0 +1,110 @@
+[
+  {
+    "name": "1º SMR A",
+    "group": "1º SMR A",
+    "kit_color": "Fucsia",
+    "logo_url": ""
+  },
+  {
+    "name": "1º SMR B",
+    "group": "1º SMR B",
+    "kit_color": "Beige",
+    "logo_url": ""
+  },
+  {
+    "name": "1º GAD",
+    "group": "1º GAD",
+    "kit_color": "Morado",
+    "logo_url": ""
+  },
+  {
+    "name": "2º COI",
+    "group": "2º COI",
+    "kit_color": "Celeste",
+    "logo_url": ""
+  },
+  {
+    "name": "2º SMR B",
+    "group": "2º SMR B",
+    "kit_color": "Blanco",
+    "logo_url": ""
+  },
+  {
+    "name": "2º ACO B",
+    "group": "2º ACO B",
+    "kit_color": "Salmón",
+    "logo_url": ""
+  },
+  {
+    "name": "1º ACO",
+    "group": "1º ACO",
+    "kit_color": "Azul",
+    "logo_url": ""
+  },
+  {
+    "name": "2º AFI",
+    "group": "2º AFI",
+    "kit_color": "Verde Oscuro",
+    "logo_url": ""
+  },
+  {
+    "name": "1º ASIR",
+    "group": "1º ASIR",
+    "kit_color": "Verde Claro",
+    "logo_url": ""
+  },
+  {
+    "name": "2º ACO A",
+    "group": "2º ACO A",
+    "kit_color": "Verde Menta",
+    "logo_url": ""
+  },
+  {
+    "name": "PROFES",
+    "group": "PROFESORES",
+    "kit_color": "Verde Caza",
+    "logo_url": ""
+  },
+  {
+    "name": "1º AFI",
+    "group": "1º AFI",
+    "kit_color": "Azul Oscuro",
+    "logo_url": ""
+  },
+  {
+    "name": "1º MKT",
+    "group": "1º MKT",
+    "kit_color": "Rosa",
+    "logo_url": ""
+  },
+  {
+    "name": "2º ASIR",
+    "group": "2º ASIR",
+    "kit_color": "Naranja",
+    "logo_url": ""
+  },
+  {
+    "name": "2º SMR A",
+    "group": "2º SMR A",
+    "kit_color": "Gris",
+    "logo_url": ""
+  },
+  {
+    "name": "1º COI",
+    "group": "1º COI",
+    "kit_color": "Amarillo",
+    "logo_url": ""
+  },
+  {
+    "name": "2º MKT",
+    "group": "2º MKT",
+    "kit_color": "Negro",
+    "logo_url": ""
+  },
+  {
+    "name": "2º LAB",
+    "group": "2º LAB",
+    "kit_color": "Rojo",
+    "logo_url": ""
+  }
+]

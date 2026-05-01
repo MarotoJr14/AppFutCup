@@ -16,7 +16,7 @@ class UserTournamentService:
         self.user_repo = UserRepository(db)
         self.audit = AuditLogService(db)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[UserTournament]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[UserTournament]:
         return self.repo.get_all(skip, limit)
 
     def get_by_user(self, user_id: int) -> list[UserTournament]:

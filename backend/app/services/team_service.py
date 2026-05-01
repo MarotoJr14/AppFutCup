@@ -21,7 +21,7 @@ class TeamService:
             raise HTTPException(status_code=404, detail="Torneo no encontrado")
         return t
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Team]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Team]:
         return self.repo.get_all(skip, limit)
 
     def get_by_id(self, team_id: int) -> Team:

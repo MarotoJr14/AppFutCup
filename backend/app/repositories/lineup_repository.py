@@ -27,8 +27,11 @@ class LineupRepository:
             Lineup.player_id == player_id,
         ).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Lineup]:
-        return self.db.query(Lineup).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Lineup]:
+        query = self.db.query(Lineup).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: LineupCreate) -> Lineup:
         lineup = Lineup(**data.model_dump())

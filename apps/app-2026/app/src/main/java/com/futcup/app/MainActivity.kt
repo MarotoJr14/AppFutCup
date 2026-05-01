@@ -54,9 +54,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         mostrarCargando(true)
 
         Executors.newSingleThreadExecutor().execute {
+            var errorMsg: String? = null
             val datos = try {
                 DataReader.cargarDatos(this)
             } catch (e: Exception) {
+                errorMsg = e.message
                 null
             }
 
@@ -69,7 +71,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     torneoData = datos
                     mostrarContenido()
                 } else {
-                    mostrarError()
+                    mostrarError(errorMsg)
                 }
             }
         }
@@ -88,12 +90,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         supportActionBar?.title = "FutCup 2026"
     }
 
-    private fun mostrarError() {
+    private fun mostrarError(errorMsg: String? = null) {
         val llLoading = findViewById<LinearLayout>(R.id.ll_loading)
         llLoading.visibility = View.VISIBLE
         llLoading.findViewById<ProgressBar>(R.id.progress_bar).visibility = View.GONE
-        llLoading.findViewById<TextView>(R.id.tv_cargando).text =
-            "No se pudieron cargar los datos.\nComprueba tu conexión a internet."
+        llLoading.findViewById<TextView>(R.id.tv_cargando).text = errorMsg?.takeIf { it.isNotBlank() }
+            ?: "No se pudieron cargar los datos.\nComprueba tu conexión a internet."
         val btn = llLoading.findViewById<Button>(R.id.btn_reintentar)
         btn.visibility = View.VISIBLE
         btn.setOnClickListener { cargarDatosAsync() }

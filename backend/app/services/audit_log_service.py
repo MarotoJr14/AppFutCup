@@ -17,11 +17,11 @@ class AuditLogService:
     ) -> AuditLog:
         return self.repo.create(entity, action, user_id, details)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[AuditLog]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[AuditLog]:
         return self.repo.get_all(skip, limit)
 
-    def get_by_entity(self, entity: AuditEntity, skip: int = 0, limit: int = 100) -> list[AuditLog]:
+    def get_by_entity(self, entity: AuditEntity, skip: int = 0, limit: int | None = None) -> list[AuditLog]:
         return self.repo.get_by_entity(entity, skip, limit)
 
-    def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[AuditLog]:
+    def get_by_user(self, user_id: int, skip: int = 0, limit: int | None = None) -> list[AuditLog]:
         return self.repo.get_by_user(user_id, skip, limit)

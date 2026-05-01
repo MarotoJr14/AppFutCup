@@ -125,18 +125,40 @@ export default function PlayersTable() {
   const { importData } = useImportData()
   const [modal, setModal] = useState(null)
   const [selected, setSelected] = useState(null)
+  const [tournaments, setTournaments] = useState([])
   const [teams, setTeams] = useState([])
+  const [playerTeams, setPlayerTeams] = useState([])
+  const [tournamentFilter, setTournamentFilter] = useState('')
   const [teamFilter, setTeamFilter] = useState('')
   const [filteredItems, setFilteredItems] = useState([])
 
   useEffect(() => { api.get('/teams').then(r => setTeams(r.data)).catch(() => {}) }, [])
+  useEffect(() => { api.get('/tournaments').then(r => setTournaments(r.data)).catch(() => {}) }, [])
+  useEffect(() => { api.get('/player-teams').then(r => setPlayerTeams(r.data)).catch(() => {}) }, [])
   useEffect(() => {
-    if (!teamFilter) { setFilteredItems(items); return }
-    api.get('/player-teams', { params: { team_id: teamFilter } }).then(r => {
-      const ids = r.data.map(pt => pt.player_id)
+    if (teamFilter) {
+      const ids = playerTeams.filter(pt => pt.team_id === Number(teamFilter)).map(pt => pt.player_id)
       setFilteredItems(items.filter(p => ids.includes(p.id)))
-    }).catch(() => setFilteredItems(items))
-  }, [teamFilter, items])
+      return
+    }
+
+    if (tournamentFilter) {
+      const teamIds = teams.filter(t => String(t.tournament_id) === String(tournamentFilter)).map(t => t.id)
+      const ids = playerTeams.filter(pt => teamIds.includes(pt.team_id)).map(pt => pt.player_id)
+      setFilteredItems(items.filter(p => ids.includes(p.id)))
+      return
+    }
+
+    setFilteredItems(items)
+  }, [teamFilter, tournamentFilter, items, teams, playerTeams])
+
+  useEffect(() => {
+    if (!tournamentFilter || !teamFilter) return
+    const team = teams.find(t => String(t.id) === String(teamFilter))
+    if (!team || String(team.tournament_id) !== String(tournamentFilter)) {
+      setTeamFilter('')
+    }
+  }, [tournamentFilter, teamFilter, teams])
 
   const handleEdit = async (data) => {
     const payload = { ...data }
@@ -169,9 +191,15 @@ export default function PlayersTable() {
       <TableToolbar
         title={<>Players <span className="text-hint text-sm font-normal">({filteredItems.length})</span></>}
         filters={[
-          <select key="t" value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="input-base w-auto text-sm">
-            <option value="">Todos los equipos</option>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          <select key="tr" value={tournamentFilter} onChange={e => { setTournamentFilter(e.target.value); setTeamFilter('') }} className="input-base w-auto text-sm">
+            <option value="">Todos los torneos</option>
+            {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>,
+          <select key="t" value={teamFilter} onChange={e => setTeamFilter(e.target.value)} className="input-base w-auto text-sm" disabled={!tournamentFilter}>
+            <option value="">{tournamentFilter ? 'Todos los equipos' : 'Selecciona torneo primero'}</option>
+            {teams
+              .filter(t => tournamentFilter ? String(t.tournament_id) === String(tournamentFilter) : false)
+              .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         ]}
         actions={[
@@ -188,7 +216,30 @@ export default function PlayersTable() {
       {modal === 'view' && selected && (<Modal title={selected.name} onClose={() => setModal(null)}><div className="space-y-2 mb-6">{COLUMNS.map(c => (<div key={c.key} className="flex gap-2"><span className="text-hint text-sm w-28 shrink-0">{c.label}:</span><span className="text-white text-sm">{c.render ? c.render(selected[c.key]) : String(selected[c.key] ?? '—')}</span></div>))}</div><PlayerTeams playerId={selected.id} teams={teams} onToast={showToast} /></Modal>)}
       {modal === 'create' && (<Modal title="Crear jugador" onClose={() => setModal(null)}><CreatePlayerWizard teams={teams} onClose={() => setModal(null)} onSuccess={fetchAll} onToast={showToast} /></Modal>)}
       {modal === 'edit' && selected && (<Modal title={`Editar: ${selected.name}`} onClose={() => setModal(null)}><GenericForm fields={EDIT_FIELDS} initial={selected} onSubmit={handleEdit} onCancel={() => setModal(null)} submitLabel="Guardar cambios" /></Modal>)}
-      {modal === 'import' && (<ImportModal title="Players" templateHeaders={TEMPLATE_HEADERS} contextFields={[{ key: 'team_id', label: 'Equipo destino', options: teams.map(t => ({ value: t.id, label: t.name })) }]} onImport={handleImport} onClose={() => setModal(null)} />)}
+      {modal === 'import' && (
+        <ImportModal
+          title="Players"
+          templateHeaders={TEMPLATE_HEADERS}
+          contextFields={[
+            {
+              key: 'tournament_id',
+              label: 'Torneo',
+              resets: ['team_id'],
+              options: tournaments.map(t => ({ value: t.id, label: t.name })),
+            },
+            {
+              key: 'team_id',
+              label: 'Equipo destino',
+              disabled: (ctx) => !ctx.tournament_id,
+              options: (ctx) => teams
+                .filter(t => String(t.tournament_id) === String(ctx.tournament_id))
+                .map(t => ({ value: t.id, label: t.name })),
+            },
+          ]}
+          onImport={handleImport}
+          onClose={() => setModal(null)}
+        />
+      )}
       {toast && <Toast {...toast} onClose={hideToast} />}
     </div>
   )

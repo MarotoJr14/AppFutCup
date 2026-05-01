@@ -19,8 +19,11 @@ class EventRepository:
     def get_by_player(self, player_id: int) -> list[Event]:
         return self.db.query(Event).filter(Event.player_id == player_id).all()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Event]:
-        return self.db.query(Event).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Event]:
+        query = self.db.query(Event).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def get_top_scorers(self, tournament_id: int, limit: int = 20):
         from app.models.match import Match

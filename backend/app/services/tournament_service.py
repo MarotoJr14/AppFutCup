@@ -13,7 +13,7 @@ class TournamentService:
         self.repo = TournamentRepository(db)
         self.audit = AuditLogService(db)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Tournament]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Tournament]:
         return self.repo.get_all(skip, limit)
 
     def get_by_id(self, tournament_id: int) -> Tournament:

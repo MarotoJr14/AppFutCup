@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_strings.dart';
+import '../../core/network/api_exception.dart';
+import '../../models/match_model.dart';
 import '../../providers/match_provider.dart';
 import '../../providers/team_provider.dart';
 import '../../repositories/match_repository.dart';
@@ -22,6 +25,8 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
   DateTime? _datetime;
   String? _origField, _origStatus;
   DateTime? _origDatetime;
+  int? _tournamentId;
+  String? _round;
   bool _loaded = false;
   final _dtFocus = FocusNode();
 
@@ -36,6 +41,85 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
 
   Future<void> _save() async {
     try {
+      if (_tournamentId != null && _round != null) {
+        final home = _homeId;
+        final away = _awayId;
+        final assigningHome = (_origHomeId == null && home != null);
+        final assigningAway = (_origAwayId == null && away != null);
+
+        if ((assigningHome || assigningAway) && home != null && away != null && home == away) {
+          throw ApiException('Un equipo no puede estar como local y visitante en el mismo partido.');
+        }
+
+        // Validación: en una misma ronda de un mismo torneo, un equipo solo puede estar en un partido.
+        if (assigningHome || assigningAway) {
+          final matches = await ref.read(matchesProvider(MatchesQuery(tournamentId: _tournamentId!)).future);
+          final used = <int, int>{}; // teamId -> matchId (misma ronda)
+          for (final m in matches) {
+            if (m.id == widget.matchId) continue;
+            if (m.round != _round) continue;
+            final h = m.teamHomeId;
+            final a = m.teamAwayId;
+            if (h != null) used.putIfAbsent(h, () => m.id);
+            if (a != null) used.putIfAbsent(a, () => m.id);
+          }
+
+          String teamName(int id) {
+            final teams = ref.read(teamsProvider(_tournamentId!)).valueOrNull ?? const [];
+            for (final t in teams) {
+              if (t.id == id) return t.name;
+            }
+            return '#$id';
+          }
+
+          final roundLabel = _roundLabel(_round!);
+          if (assigningHome) {
+            final homeId = home!;
+            if (used.containsKey(homeId)) {
+              throw ApiException('El equipo "${teamName(homeId)}" ya está asignado al partido #${used[homeId]} en $roundLabel.');
+            }
+          }
+          if (assigningAway) {
+            final awayId = away!;
+            if (used.containsKey(awayId)) {
+              throw ApiException('El equipo "${teamName(awayId)}" ya está asignado al partido #${used[awayId]} en $roundLabel.');
+            }
+          }
+
+          // Validación: si un equipo ha perdido en una ronda, no puede aparecer en rondas siguientes.
+          final currIdx = _roundIndex(_round!);
+          if (currIdx > 0) {
+            final eliminated = <int, MatchModel>{}; // teamId -> match donde perdió
+            for (final m in matches) {
+              if (m.id == widget.matchId) continue;
+              final rIdx = _roundIndex(m.round);
+              if (rIdx < 0 || rIdx >= currIdx) continue;
+              final loserId = _loserTeamId(m);
+              if (loserId != null) eliminated.putIfAbsent(loserId, () => m);
+            }
+
+            if (assigningHome) {
+              final homeId = home!;
+              final lostMatch = eliminated[homeId];
+              if (lostMatch != null) {
+                throw ApiException(
+                  'El equipo "${teamName(homeId)}" fue eliminado en ${_roundLabel(lostMatch.round)} (partido #${lostMatch.id}) y no puede jugar en rondas posteriores.',
+                );
+              }
+            }
+            if (assigningAway) {
+              final awayId = away!;
+              final lostMatch = eliminated[awayId];
+              if (lostMatch != null) {
+                throw ApiException(
+                  'El equipo "${teamName(awayId)}" fue eliminado en ${_roundLabel(lostMatch.round)} (partido #${lostMatch.id}) y no puede jugar en rondas posteriores.',
+                );
+              }
+            }
+          }
+        }
+      }
+
       final data = <String, dynamic>{};
       if (_origHomeId == null && _homeId != null) data['team_home_id'] = _homeId;
       if (_origAwayId == null && _awayId != null) data['team_away_id'] = _awayId;
@@ -53,7 +137,12 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
       ref.invalidate(matchDetailProvider(widget.matchId));
       if (mounted) context.pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)));
+      final msg = (e is ApiException) ? e.message : e.toString();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: AppColors.error, duration: const Duration(seconds: 3)),
+        );
+      }
     }
   }
 
@@ -80,6 +169,8 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
           _field = match.field; _status = match.status;
           _datetime = match.matchDatetime;
           _origField = match.field; _origStatus = match.status; _origDatetime = match.matchDatetime;
+          _tournamentId = match.tournamentId;
+          _round = match.round;
           _loaded = true;
         }
         final teamsAsync = ref.watch(teamsProvider(match.tournamentId));
@@ -210,4 +301,38 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
   );
 
   String _fmtDt(DateTime d) => '${d.day.toString().padLeft(2,'0')}/${d.month.toString().padLeft(2,'0')}/${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+
+  String _roundLabel(String r) => const {
+    'RoundOf16': AppStrings.roundOf16,
+    'Quarterfinal': AppStrings.quarterfinal,
+    'Semifinal': AppStrings.semifinal,
+    'Final': AppStrings.finalRound,
+  }[r] ?? r;
+
+  int _roundIndex(String r) => const {
+    'RoundOf16': 0,
+    'Quarterfinal': 1,
+    'Semifinal': 2,
+    'Final': 3,
+  }[r] ?? -1;
+
+  int? _loserTeamId(MatchModel m) {
+    if (m.status != 'Finished') return null;
+    final homeId = m.teamHomeId;
+    final awayId = m.teamAwayId;
+    if (homeId == null || awayId == null) return null;
+    final gh = m.goalsHome;
+    final ga = m.goalsAway;
+    if (gh == null || ga == null) return null;
+
+    if (gh > ga) return awayId;
+    if (ga > gh) return homeId;
+
+    final ph = m.penHome;
+    final pa = m.penAway;
+    if (ph == null || pa == null) return null;
+    if (ph > pa) return awayId;
+    if (pa > ph) return homeId;
+    return null;
+  }
 }

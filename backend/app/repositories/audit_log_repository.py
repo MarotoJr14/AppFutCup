@@ -7,34 +7,37 @@ class AuditLogRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[AuditLog]:
-        return (
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[AuditLog]:
+        query = (
             self.db.query(AuditLog)
             .order_by(AuditLog.created_at.desc())
             .offset(skip)
-            .limit(limit)
-            .all()
         )
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
-    def get_by_entity(self, entity: AuditEntity, skip: int = 0, limit: int = 100) -> list[AuditLog]:
-        return (
+    def get_by_entity(self, entity: AuditEntity, skip: int = 0, limit: int | None = None) -> list[AuditLog]:
+        query = (
             self.db.query(AuditLog)
             .filter(AuditLog.entity == entity)
             .order_by(AuditLog.created_at.desc())
             .offset(skip)
-            .limit(limit)
-            .all()
         )
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
-    def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[AuditLog]:
-        return (
+    def get_by_user(self, user_id: int, skip: int = 0, limit: int | None = None) -> list[AuditLog]:
+        query = (
             self.db.query(AuditLog)
             .filter(AuditLog.user_id == user_id)
             .order_by(AuditLog.created_at.desc())
             .offset(skip)
-            .limit(limit)
-            .all()
         )
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, entity: AuditEntity, action: AuditAction, user_id: int, details: str | None = None) -> AuditLog:
         log = AuditLog(

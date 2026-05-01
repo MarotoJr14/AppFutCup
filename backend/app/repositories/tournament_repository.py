@@ -17,8 +17,11 @@ class TournamentRepository:
     def get_active(self) -> Optional[Tournament]:
         return self.db.query(Tournament).filter(Tournament.is_active == True).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Tournament]:
-        return self.db.query(Tournament).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Tournament]:
+        query = self.db.query(Tournament).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: TournamentCreate) -> Tournament:
         tournament = Tournament(**data.model_dump())

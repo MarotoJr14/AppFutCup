@@ -28,7 +28,7 @@ class PlayerService:
                 self.repo.db.rollback()
                 raise
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Player]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Player]:
         players = self.repo.get_all(skip, limit)
         self._repair_invalid_dnis(players)
         return players

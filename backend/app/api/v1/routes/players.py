@@ -10,7 +10,7 @@ router = APIRouter(prefix="/players", tags=["Players"])
 
 
 @router.get("/", response_model=list[PlayerOut])
-def get_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def get_all(skip: int = 0, limit: int | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     return PlayerService(db).get_all(skip, limit)
 
 

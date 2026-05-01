@@ -17,8 +17,11 @@ class TeamRepository:
     def get_by_name_and_tournament(self, name: str, tournament_id: int) -> Optional[Team]:
         return self.db.query(Team).filter(Team.name == name, Team.tournament_id == tournament_id).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Team]:
-        return self.db.query(Team).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Team]:
+        query = self.db.query(Team).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: TeamCreate) -> Team:
         team = Team(**data.model_dump())

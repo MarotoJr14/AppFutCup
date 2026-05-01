@@ -24,7 +24,7 @@ class RegisterPlayerRequest(BaseModel):
 
 
 @router.get("/", response_model=list[PlayerTeamOut])
-def get_all(team_id: int | None = None, player_id: int | None = None, skip: int = 0, limit: int = 100,
+def get_all(team_id: int | None = None, player_id: int | None = None, skip: int = 0, limit: int | None = None,
             db: Session = Depends(get_db), _: User = Depends(get_current_user)):
     svc = PlayerTeamService(db)
     if team_id and player_id:

@@ -13,7 +13,7 @@ class UserService:
         self.repo = UserRepository(db)
         self.audit = AuditLogService(db)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[User]:
         return self.repo.get_all(skip, limit)
 
     def get_by_id(self, user_id: int) -> User:

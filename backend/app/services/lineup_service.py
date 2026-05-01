@@ -26,7 +26,7 @@ class LineupService:
             raise HTTPException(status_code=404, detail="Torneo no encontrado")
         require_active_tournament(tournament)
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Lineup]:
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[Lineup]:
         return self.repo.get_all(skip, limit)
 
     def get_by_id(self, lineup_id: int) -> Lineup:

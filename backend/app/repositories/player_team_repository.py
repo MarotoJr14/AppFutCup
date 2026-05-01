@@ -40,8 +40,11 @@ class PlayerTeamRepository:
             PlayerTeam.team_id == team_id,
         ).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[PlayerTeam]:
-        return self.db.query(PlayerTeam).offset(skip).limit(limit).all()
+    def get_all(self, skip: int = 0, limit: int | None = None) -> list[PlayerTeam]:
+        query = self.db.query(PlayerTeam).offset(skip)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     def create(self, data: PlayerTeamCreate) -> PlayerTeam:
         pt = PlayerTeam(**data.model_dump())
