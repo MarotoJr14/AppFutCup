@@ -6,7 +6,7 @@ class AppStrings {
   // `--dart-define=BASE_URL=http://<TU_IP>:8000/api/v1`
   static const String baseUrl           = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://192.168.22.229:8000/api/v1',
+    defaultValue: 'http://192.168.1.28:8000/api/v1',
   );
   static const String tokenKey          = 'auth_token';
   static const String userKey           = 'auth_user';
