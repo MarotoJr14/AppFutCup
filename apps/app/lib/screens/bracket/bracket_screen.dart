@@ -170,8 +170,24 @@ class _BracketView extends ConsumerWidget {
         const double headerHeight = 28;
         const double headerGap = 10;
 
+        int _cmp(MatchModel a, MatchModel b) {
+          final ad = a.matchDatetime;
+          final bd = b.matchDatetime;
+          if (ad == null && bd != null) return 1;
+          if (ad != null && bd == null) return -1;
+          if (ad != null && bd != null) {
+            final c = ad.compareTo(bd);
+            if (c != 0) return c;
+          }
+          final af = (a.field ?? '').trim();
+          final bf = (b.field ?? '').trim();
+          final c2 = af.toLowerCase().compareTo(bf.toLowerCase());
+          if (c2 != 0) return c2;
+          return a.id.compareTo(b.id);
+        }
+
         final byRound = <String, List<MatchModel>>{
-          for (final r in rounds) r: matches.where((m) => m.round == r).toList()..sort((a, b) => a.id.compareTo(b.id)),
+          for (final r in rounds) r: matches.where((m) => m.round == r).toList()..sort(_cmp),
         };
 
         final yPos = <int, double>{};

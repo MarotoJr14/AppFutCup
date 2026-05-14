@@ -33,8 +33,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     await _enforceSessionTimeoutOnStartup();
 
     // Restore session from secure storage on startup (if available)
+    final token = await SecureStorageService.getToken();
     final userJson = await SecureStorageService.getUser();
-    if (userJson != null) {
+    if (userJson != null && token != null) {
       try {
         final user = UserModel.fromJsonString(userJson);
         if (user.isAdmin) {
@@ -47,9 +48,10 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       } catch (_) {
         // fallthrough to refetch below
       }
+    } else if (userJson != null && token == null) {
+      // Avoid restoring a "logged in" user without a token
+      await SecureStorageService.clearAuth();
     }
-
-    final token = await SecureStorageService.getToken();
     if (token != null) {
       try {
         final user = await _repo.getMe();
@@ -82,7 +84,6 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   Future<void> handleLifecycleChange(AppLifecycleState state) async {
-    if (this.state is AsyncLoading) return;
     final isLoggedIn = this.state.valueOrNull != null;
     if (!isLoggedIn) return;
 

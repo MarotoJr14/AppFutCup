@@ -51,6 +51,35 @@ class MatchService:
         team = self.team_repo.get_by_id(team_id)
         return f"{team.name} (#{team_id})" if team else f"#{team_id}"
 
+    def _validate_unique_field_datetime(
+        self,
+        *,
+        tournament_id: int,
+        field: str | None,
+        datetime_value,
+        exclude_match_id: int | None = None,
+    ) -> None:
+        if datetime_value is None:
+            return
+        if field is None or (isinstance(field, str) and not field.strip()):
+            return
+
+        field_norm = field.strip()
+        conflicts = self.repo.get_by_tournament_field_datetime(
+            tournament_id=tournament_id,
+            field=field_norm,
+            datetime=datetime_value,
+            exclude_match_id=exclude_match_id,
+        )
+        if conflicts:
+            other = conflicts[0]
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Ya existe otro partido programado en ese campo y a esa hora."
+                ),
+            )
+
     def _get_winner_loser_ids(self, match: Match) -> tuple[int | None, int | None]:
         if match.status != MatchStatus.Finished:
             return None, None
@@ -290,6 +319,8 @@ class MatchService:
             field_value = update_data["field"]
             if (field_value is None or (isinstance(field_value, str) and not field_value.strip())) and match.field is not None:
                 raise HTTPException(status_code=400, detail="El campo no se puede vaciar")
+            if isinstance(field_value, str):
+                update_data["field"] = field_value.strip()
 
         if "status" in update_data and update_data["status"] is None:
             update_data.pop("status", None)
@@ -344,6 +375,17 @@ class MatchService:
                 team = self.team_repo.get_by_id(update_data["team_away_id"])
                 if not team or team.tournament_id != match.tournament_id:
                     raise HTTPException(status_code=400, detail="El equipo visitante no pertenece al torneo del partido")
+
+        # No puede haber 2 partidos con el mismo datetime en el mismo campo (por torneo)
+        if "datetime" in update_data or "field" in update_data:
+            field_value = update_data.get("field", match.field)
+            datetime_value = update_data.get("datetime", match.datetime)
+            self._validate_unique_field_datetime(
+                tournament_id=match.tournament_id,
+                field=field_value,
+                datetime_value=datetime_value,
+                exclude_match_id=match.id,
+            )
 
         home_id = update_data.get("team_home_id", match.team_home_id)
         away_id = update_data.get("team_away_id", match.team_away_id)

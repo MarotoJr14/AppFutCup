@@ -213,7 +213,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               ],
                             )
                           : (() {
-                              final sorted = [...matches]..sort((a, b) => a.id.compareTo(b.id));
+                              int cmp(MatchModel a, MatchModel b) {
+                                final ad = a.matchDatetime;
+                                final bd = b.matchDatetime;
+                                if (ad == null && bd != null) return 1;
+                                if (ad != null && bd == null) return -1;
+                                if (ad != null && bd != null) {
+                                  final c = ad.compareTo(bd);
+                                  if (c != 0) return c;
+                                }
+                                final af = (a.field ?? '').trim();
+                                final bf = (b.field ?? '').trim();
+                                final c2 = af.toLowerCase().compareTo(bf.toLowerCase());
+                                if (c2 != 0) return c2;
+                                return a.id.compareTo(b.id);
+                              }
+
+                              final sorted = [...matches]..sort(cmp);
                               return ListView.builder(
                               physics : AlwaysScrollableScrollPhysics(),
                               padding : EdgeInsets.symmetric(horizontal: 12),

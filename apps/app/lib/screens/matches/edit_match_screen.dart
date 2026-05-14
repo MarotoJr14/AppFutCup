@@ -76,13 +76,13 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
           if (assigningHome) {
             final homeId = home!;
             if (used.containsKey(homeId)) {
-              throw ApiException('El equipo "${teamName(homeId)}" ya está asignado al partido #${used[homeId]} en $roundLabel.');
+              throw ApiException('El equipo "${teamName(homeId)}" ya está asignado a un partido en $roundLabel.');
             }
           }
           if (assigningAway) {
             final awayId = away!;
             if (used.containsKey(awayId)) {
-              throw ApiException('El equipo "${teamName(awayId)}" ya está asignado al partido #${used[awayId]} en $roundLabel.');
+              throw ApiException('El equipo "${teamName(awayId)}" ya está asignado a un partido en $roundLabel.');
             }
           }
 
@@ -103,7 +103,7 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
               final lostMatch = eliminated[homeId];
               if (lostMatch != null) {
                 throw ApiException(
-                  'El equipo "${teamName(homeId)}" fue eliminado en ${_roundLabel(lostMatch.round)} (partido #${lostMatch.id}) y no puede jugar en rondas posteriores.',
+                  'El equipo "${teamName(homeId)}" fue eliminado en ${_roundLabel(lostMatch.round)} y no puede jugar en rondas posteriores.',
                 );
               }
             }
@@ -112,7 +112,7 @@ class _EditMatchScreenState extends ConsumerState<EditMatchScreen> {
               final lostMatch = eliminated[awayId];
               if (lostMatch != null) {
                 throw ApiException(
-                  'El equipo "${teamName(awayId)}" fue eliminado en ${_roundLabel(lostMatch.round)} (partido #${lostMatch.id}) y no puede jugar en rondas posteriores.',
+                  'El equipo "${teamName(awayId)}" fue eliminado en ${_roundLabel(lostMatch.round)} y no puede jugar en rondas posteriores.',
                 );
               }
             }

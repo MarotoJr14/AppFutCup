@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Integer, String, ForeignKey, DateTime, Enum, Index, func
+from sqlalchemy import Integer, String, ForeignKey, DateTime, Enum, Index, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from app.models.enums import MatchRound, MatchStatus
@@ -25,6 +25,7 @@ class Match(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=func.now())
     
     __table_args__ = (
+        UniqueConstraint("tournament_id", "field", "datetime", name="uq_match_field_datetime"),
         Index("idx_matches_teams", "team_home_id", "team_away_id"),
         Index("idx_matches_datetime", "datetime"),
         Index("idx_matches_round", "round"),

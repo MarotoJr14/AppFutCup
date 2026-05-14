@@ -31,7 +31,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final remember = prefs.getBool('remember_login') ?? false;
     if (remember) {
       _emailCtrl.text = prefs.getString('saved_email') ?? '';
-      _passCtrl.text = prefs.getString('saved_password') ?? '';
+      // Never prefill / persist password for security reasons.
+      _passCtrl.clear();
+      await prefs.remove('saved_password');
       _remember = true;
       setState(() {});
     }
@@ -42,7 +44,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_remember) {
       await prefs.setBool('remember_login', true);
       await prefs.setString('saved_email', _emailCtrl.text.trim());
-      await prefs.setString('saved_password', _passCtrl.text);
+      // Never store password.
+      await prefs.remove('saved_password');
     } else {
       await prefs.setBool('remember_login', false);
       await prefs.remove('saved_email');

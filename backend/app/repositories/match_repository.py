@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime as dt
 from sqlalchemy.orm import Session
 from app.models.match import Match
 from app.models.enums import MatchRound, MatchStatus
@@ -14,6 +15,23 @@ class MatchRepository:
 
     def get_by_tournament(self, tournament_id: int) -> list[Match]:
         return self.db.query(Match).filter(Match.tournament_id == tournament_id).all()
+
+    def get_by_tournament_field_datetime(
+        self,
+        *,
+        tournament_id: int,
+        field: str,
+        datetime: dt,
+        exclude_match_id: int | None = None,
+    ) -> list[Match]:
+        query = self.db.query(Match).filter(
+            Match.tournament_id == tournament_id,
+            Match.field == field,
+            Match.datetime == datetime,
+        )
+        if exclude_match_id is not None:
+            query = query.filter(Match.id != exclude_match_id)
+        return query.all()
 
     def get_by_tournament_and_round(self, tournament_id: int, round: MatchRound) -> list[Match]:
         return self.db.query(Match).filter(
