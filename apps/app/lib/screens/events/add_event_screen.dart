@@ -7,8 +7,10 @@ import '../../providers/match_provider.dart';
 import '../../providers/team_provider.dart';
 import '../../providers/event_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/lineup_provider.dart';
 import '../../repositories/event_repository.dart';
 import '../../models/event_model.dart';
+import '../../models/team_model.dart';
 import '../../widgets/scaffold_with_menu.dart';
 import '../../widgets/loading_widget.dart';
 
@@ -118,8 +120,9 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
             ),
           );
         }
-        final teamIds = [if (match.teamHomeId != null) match.teamHomeId!, if (match.teamAwayId != null) match.teamAwayId!];
-        if (teamIds.length != 2) {
+        final homeTeamId = match.teamHomeId;
+        final awayTeamId = match.teamAwayId;
+        if (homeTeamId == null || awayTeamId == null) {
           return ScaffoldWithMenu(
             title: 'Añadir Evento',
             body: Center(
@@ -132,10 +135,20 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
         }
         final teamsAsync = ref.watch(teamsProvider(match.tournamentId));
         final allTeams = teamsAsync.valueOrNull ?? [];
-        final matchTeams = allTeams.where((t) => teamIds.contains(t.id)).toList();
+        final byId = {for (final t in allTeams) t.id: t};
+        final matchTeams = [byId[homeTeamId], byId[awayTeamId]].whereType<TeamModel>().toList();
+
+        final lineupsAsync = ref.watch(matchLineupsProvider(widget.matchId));
+        final lineups = lineupsAsync.valueOrNull ?? [];
 
         final playersAsync = _teamId != null ? ref.watch(teamPlayersProvider(_teamId!)) : null;
-        final players = playersAsync?.valueOrNull ?? [];
+        final allTeamPlayers = playersAsync?.valueOrNull ?? [];
+        final allowedPlayerIds = _teamId == null
+            ? const <int>{}
+            : lineups.where((l) => l.teamId == _teamId).map((l) => l.playerId).toSet();
+        final players = _teamId == null
+            ? const []
+            : allTeamPlayers.where((p) => allowedPlayerIds.contains(p.playerId)).toList();
 
         return ScaffoldWithMenu(
           title: 'Añadir Evento',
@@ -154,7 +167,11 @@ class _AddEventScreenState extends ConsumerState<AddEventScreen> {
                 ),
                 SizedBox(height: 14),
                 DropdownButtonFormField(
-                  value: players.isNotEmpty && _playerId != null ? players.firstWhere((p) => p.playerId == _playerId, orElse: () => players.first) : null,
+                  value: _playerId == null
+                      ? null
+                      : (players.any((p) => p.playerId == _playerId)
+                          ? players.firstWhere((p) => p.playerId == _playerId)
+                          : null),
                   dropdownColor: AppColors.surfaceAlt,
                   style: TextStyle(color: AppColors.onSurface),
                   decoration: _deco('Jugador *'),

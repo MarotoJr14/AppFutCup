@@ -37,7 +37,7 @@ function MatchForm({ initial = {}, teams, tournaments, onSubmit, onCancel, onToa
   })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
-  const isEdit = Boolean(initial?.id)
+  const isEdit = initial?.id !== undefined && initial?.id !== null
   const isPlaying = initial?.status === 'Playing'
   const isPenalties = initial?.status === 'Penalties'
   const isFinished = initial?.status === 'Finished'
@@ -125,6 +125,8 @@ function MatchForm({ initial = {}, teams, tournaments, onSubmit, onCancel, onToa
           ? STATUSES.filter(s => s.value === 'Penalties' || s.value === 'Finished')
           : STATUSES.filter(s => s.value === 'Finished')
 
+  const disableDatetimeAndField = lockInfo && !isEdit
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {sel('Torneo', 'tournament_id', tournaments.map(t => ({ value: t.id, label: t.name })), true, isEdit || lockInfo)}
@@ -134,13 +136,13 @@ function MatchForm({ initial = {}, teams, tournaments, onSubmit, onCancel, onToa
       {sel('Equipo visitante', 'team_away_id', tournamentTeams.map(t => ({ value: t.id, label: t.name })), false, lockInfo || !form.tournament_id, isEdit ? initial.team_away_id == null : true)}
       <div>
         <label className="text-sm text-hint mb-1 block">Fecha y hora</label>
-        <input type="datetime-local" value={form.datetime} onChange={e => set('datetime', e.target.value)} disabled={lockInfo} className="input-base" />
+        <input type="datetime-local" value={form.datetime} onChange={e => set('datetime', e.target.value)} disabled={disableDatetimeAndField} className="input-base" />
         {errors.datetime && <p className="text-error text-xs mt-1">{errors.datetime}</p>}
       </div>
-      {inp('Campo', 'field', 'text', 'Ej: Campo 1', lockInfo)}
+      {inp('Campo', 'field', 'text', 'Ej: Campo 1', disableDatetimeAndField)}
       <div className="flex gap-3 justify-end pt-2">
         <button type="button" onClick={onCancel} disabled={saving} className="btn-secondary">Cancelar</button>
-        <button type="submit" disabled={saving || isFinished} className="btn-primary">{saving ? 'Guardando...' : submitLabel}</button>
+        <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Guardando...' : submitLabel}</button>
       </div>
     </form>
   )
@@ -444,6 +446,7 @@ export default function MatchesTable() {
 
 function MatchEvents({ matchId, matchStatus, homeTeamId, awayTeamId, teams, onToast }) {
   const [events, setEvents] = useState([])
+  const [lineups, setLineups] = useState([])
   const [loading, setLoading] = useState(true)
   const [showMatchForm, setShowMatchForm] = useState(false)
   const [showPenaltyForm, setShowPenaltyForm] = useState(false)
@@ -453,7 +456,7 @@ function MatchEvents({ matchId, matchStatus, homeTeamId, awayTeamId, teams, onTo
   const [form, setForm] = useState(defaultForm)
   const EVENT_ICONS = { Goal:'⚽', Owngoal:'❌', Yellow:'🟨', YellowX2:'🟨🟥', Red:'🟥' }
   const PENALTY_ICONS = { PenaltyScored:'✅', PenaltyMissed:'❌' }
-  const matchTeams = teams.filter(t => [homeTeamId, awayTeamId].includes(t.id))
+  const matchTeams = [teams.find(t => t.id === homeTeamId), teams.find(t => t.id === awayTeamId)].filter(Boolean)
   const canAddMatchEvents = matchStatus === 'Playing' && Boolean(homeTeamId) && Boolean(awayTeamId)
   const canAddPenalties = matchStatus === 'Penalties' && Boolean(homeTeamId) && Boolean(awayTeamId)
 
@@ -478,9 +481,16 @@ function MatchEvents({ matchId, matchStatus, homeTeamId, awayTeamId, teams, onTo
       .finally(() => setLoading(false))
   }
 
+  const loadLineups = () => {
+    api.get('/lineups', { params: { match_id: matchId } })
+      .then(r => setLineups(r.data))
+      .catch(() => setLineups([]))
+  }
+
   // Load all players once for name lookup
   useEffect(() => {
     load()
+    loadLineups()
     api.get('/players').then(r => setAllPlayers(r.data)).catch(() => {})
   }, [matchId])
 
@@ -491,6 +501,16 @@ function MatchEvents({ matchId, matchStatus, homeTeamId, awayTeamId, teams, onTo
       .then(r => setPlayerTeams(r.data))
       .catch(() => {})
   }, [form.team_id])
+
+  const allowedPlayerIds = !form.team_id
+    ? new Set()
+    : new Set(lineups
+        .filter(l => Number(l.team_id) === Number(form.team_id))
+        .map(l => Number(l.player_id)))
+
+  const selectablePlayerTeams = !form.team_id
+    ? []
+    : playerTeams.filter(pt => allowedPlayerIds.has(Number(pt.player_id)))
 
   const playerName = (playerId) => {
     const player = allPlayers.find(p => p.id === playerId)
@@ -577,7 +597,7 @@ function MatchEvents({ matchId, matchStatus, homeTeamId, awayTeamId, teams, onTo
             onChange={e => setForm(f => ({ ...f, player_id: e.target.value }))}
             className="input-base bg-bg">
             <option value="">— Jugador —</option>
-            {playerTeams.map(pt => (
+            {selectablePlayerTeams.map(pt => (
               <option key={pt.player_id} value={pt.player_id}>
                 #{pt.number} — {playerName(pt.player_id)}
               </option>
@@ -656,7 +676,7 @@ function MatchEvents({ matchId, matchStatus, homeTeamId, awayTeamId, teams, onTo
               onChange={e => setForm(f => ({ ...f, player_id: e.target.value }))}
               className="input-base bg-bg">
               <option value="">— Jugador —</option>
-              {playerTeams.map(pt => (
+              {selectablePlayerTeams.map(pt => (
                 <option key={pt.player_id} value={pt.player_id}>
                   #{pt.number} — {playerName(pt.player_id)}
                 </option>
