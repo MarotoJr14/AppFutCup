@@ -9,6 +9,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/lineup_provider.dart';
 import '../../repositories/event_repository.dart';
 import '../../models/event_model.dart';
+import '../../models/player_team_model.dart';
 import '../../models/team_model.dart';
 import '../../widgets/scaffold_with_menu.dart';
 import '../../widgets/loading_widget.dart';
@@ -174,7 +175,7 @@ class _AddPenaltyEventScreenState extends ConsumerState<AddPenaltyEventScreen> {
                     final name = playerAsync.valueOrNull?.name ?? 'Jugador ${p.playerId}';
                     return DropdownMenuItem(value: p, child: Text('#${p.number} – $name'));
                   }).toList(),
-                  onChanged: (p) => setState(() => _playerId = p?.playerId),
+                  onChanged: (p) => setState(() => _playerId = (p as PlayerTeamModel?)?.playerId),
                 ),
                 SizedBox(height: 14),
                 DropdownButtonFormField<String>(
